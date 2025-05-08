@@ -61,27 +61,27 @@ export default function AppShell({ children }: AppShellProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       {/* Header */}
-      <header className="bg-white dark:bg-card border-b border-border">
+      <header className="sticky top-0 z-30 bg-white dark:bg-card border-b border-border shadow-sm backdrop-blur-md bg-opacity-90 dark:bg-opacity-90 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Logo className="mr-8" />
+              <Logo className="mr-8 transition-transform duration-300 hover:scale-105" />
               
               {/* Desktop Navigation */}
-              <div className="hidden md:flex space-x-4">
+              <div className="hidden md:flex space-x-1">
                 {navItems.map((item) => (
                   <Link 
                     key={item.path} 
                     href={item.path}
-                    className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                    className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-all duration-300 ${
                       location === item.path
-                        ? "text-primary dark:text-white bg-secondary/10 dark:bg-secondary/20"
+                        ? "text-primary dark:text-white bg-secondary/10 dark:bg-secondary/20 shadow-sm"
                         : "text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                     }`}
                   >
-                    <item.icon className="mr-1.5 h-5 w-5" />
+                    <item.icon className={`mr-1.5 h-5 w-5 transition-transform duration-300 ${location === item.path ? 'scale-110' : ''}`} />
                     {item.label}
                   </Link>
                 ))}
@@ -94,32 +94,65 @@ export default function AppShell({ children }: AppShellProps) {
               {/* Notifications */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="relative bg-gray-100/50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full p-2 transition-all duration-300"
+                  >
                     <Bell className="h-5 w-5" />
                     {notifications > 0 && (
-                      <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+                      <span className="absolute top-0 right-0 h-5 w-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center border-2 border-white dark:border-card animate-pulse shadow-sm">
                         {notifications}
                       </span>
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72">
-                  <div className="p-4">
-                    <h3 className="font-medium text-sm">Notifications</h3>
-                    <div className="mt-2 space-y-3">
-                      <div className="text-sm p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-                        <div className="font-medium">New match found</div>
-                        <div className="text-gray-500 dark:text-gray-400 text-xs">
-                          You have a new skill match with Sarah J.
+                <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg rounded-xl">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium">Notifications</h3>
+                      <Button variant="ghost" size="sm" className="text-xs h-8 px-2">
+                        Mark all as read
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="max-h-[400px] overflow-y-auto">
+                    <div className="p-1">
+                      <div className="relative text-sm p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer my-1 border-l-2 border-blue-500">
+                        <div className="flex gap-3">
+                          <div className="rounded-full bg-blue-100 dark:bg-blue-900/30 h-10 w-10 flex items-center justify-center flex-shrink-0 text-blue-600 dark:text-blue-400">
+                            <Users className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">New match found</div>
+                            <div className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                              You have a new skill match with Sarah J.
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-500 mt-1.5">2 minutes ago</div>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-sm p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">
-                        <div className="font-medium">Session scheduled</div>
-                        <div className="text-gray-500 dark:text-gray-400 text-xs">
-                          Your French lesson is confirmed for tomorrow at 3pm.
+                      
+                      <div className="relative text-sm p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer my-1 border-l-2 border-green-500">
+                        <div className="flex gap-3">
+                          <div className="rounded-full bg-green-100 dark:bg-green-900/30 h-10 w-10 flex items-center justify-center flex-shrink-0 text-green-600 dark:text-green-400">
+                            <Calendar className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">Session scheduled</div>
+                            <div className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                              Your French lesson is confirmed for tomorrow at 3pm.
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-500 mt-1.5">1 hour ago</div>
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </div>
+                  <div className="p-2 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 text-center">
+                    <Button variant="ghost" size="sm" className="text-xs w-full">
+                      View all notifications
+                    </Button>
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -127,42 +160,57 @@ export default function AppShell({ children }: AppShellProps) {
               {/* User menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="p-1">
-                    <Avatar className="h-8 w-8">
+                  <Button variant="ghost" className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300">
+                    <Avatar className="h-8 w-8 border border-gray-200 dark:border-gray-700 shadow-sm">
                       <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                      <AvatarFallback>JD</AvatarFallback>
+                      <AvatarFallback className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-gray-100 font-medium">JD</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <div className="flex items-center gap-2 p-2">
-                    <Avatar>
-                      <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                      <AvatarFallback>JD</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">John Doe</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">john@example.com</p>
+                <DropdownMenuContent align="end" className="w-56 p-0 overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg rounded-xl">
+                  <div className="p-4 bg-gradient-to-br from-primary/10 to-transparent dark:from-primary/20 dark:to-transparent">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12 border-2 border-white dark:border-gray-700 shadow-md">
+                        <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+                        <AvatarFallback className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-gray-100 font-medium">JD</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">John Doe</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">john@example.com</p>
+                      </div>
                     </div>
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="flex items-center">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
+                  
+                  <div className="py-2">
+                    <DropdownMenuItem asChild className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800 py-2">
+                      <Link href="/profile" className="flex items-center">
+                        <div className="rounded-full bg-gray-100 dark:bg-gray-800 h-8 w-8 flex items-center justify-center mr-2 text-gray-600 dark:text-gray-400">
+                          <User className="h-4 w-4" />
+                        </div>
+                        <span>My Profile</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800 py-2">
+                      <Link href="/settings" className="flex items-center">
+                        <div className="rounded-full bg-gray-100 dark:bg-gray-800 h-8 w-8 flex items-center justify-center mr-2 text-gray-600 dark:text-gray-400">
+                          <Settings className="h-4 w-4" />
+                        </div>
+                        <span>Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </div>
+                  
+                  <div className="p-2 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
+                    <DropdownMenuItem 
+                      onClick={handleLogout}
+                      className="cursor-pointer flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-900/10 focus:bg-red-50 dark:focus:bg-red-900/10 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200 py-2 rounded-lg"
+                    >
+                      <div className="rounded-full bg-red-100 dark:bg-red-900/30 h-8 w-8 flex items-center justify-center text-red-600 dark:text-red-400">
+                        <LogOut className="h-4 w-4" />
+                      </div>
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -171,27 +219,29 @@ export default function AppShell({ children }: AppShellProps) {
       </header>
       
       {/* Mobile Nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-border z-10">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-border z-10 shadow-lg bg-opacity-90 dark:bg-opacity-90 backdrop-blur-md">
         <div className="flex justify-around items-center h-16">
           {navItems.map((item) => (
             <Link 
               key={item.path} 
               href={item.path}
-              className={`flex flex-col items-center justify-center pt-2 pb-1 px-1 ${
+              className={`flex flex-col items-center justify-center pt-2 pb-1 px-2 rounded-lg transition-colors duration-300 ${
                 location === item.path
                   ? "text-primary dark:text-white"
                   : "text-gray-600 dark:text-gray-300"
               }`}
             >
-              <item.icon className="h-6 w-6" />
-              <span className="text-xs mt-1">{item.label}</span>
+              <div className={`relative ${location === item.path ? 'after:content-[""] after:absolute after:h-1 after:w-1 after:bg-primary dark:after:bg-white after:rounded-full after:-bottom-1 after:left-1/2 after:-translate-x-1/2' : ''}`}>
+                <item.icon className={`h-6 w-6 transition-transform duration-300 ${location === item.path ? 'scale-110' : ''}`} />
+              </div>
+              <span className="text-xs mt-1 font-medium">{item.label}</span>
             </Link>
           ))}
         </div>
       </div>
       
       {/* Main content */}
-      <main className="flex-grow">
+      <main className="flex-grow pb-20 md:pb-6 transition-colors duration-300">
         {children}
       </main>
     </div>
