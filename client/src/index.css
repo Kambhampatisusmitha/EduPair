@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+    
+    --primary: 215 38% 21%; /* #213448 */
+    --primary-foreground: 210 20% 98%;
+    
+    --secondary: 201 23% 45%; /* #547792 */
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+    
+    --accent: 60 52% 86%; /* #ECEFCA */
+    --accent-foreground: 215 38% 21%;
+    
+    --light-blue: 195 21% 67%; /* #94B4C1 */
+    --light-blue-foreground: 215 38% 21%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 20% 98%;
+    
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 224 71.4% 4.1%;
+    
+    --radius: 0.5rem;
+    
+    --chart-1: var(--primary);
+    --chart-2: var(--secondary);
+    --chart-3: var(--light-blue);
+    --chart-4: var(--accent);
+    --chart-5: 300 80% 50%;
+  }
+
+  .dark {
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+    
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+    
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
+    
+    --primary: 215 38% 15%; /* darker #213448 */
+    --primary-foreground: 210 20% 98%;
+    
+    --secondary: 201 23% 35%; /* darker #547792 */
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 215 27.9% 16.9%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    
+    --accent: 60 52% 76%; /* darker #ECEFCA */
+    --accent-foreground: 215 38% 21%;
+    
+    --light-blue: 195 21% 57%; /* darker #94B4C1 */
+    --light-blue-foreground: 215 38% 21%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+    
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 216 34% 17%;
+    
+    --chart-1: var(--primary);
+    --chart-2: var(--secondary);
+    --chart-3: var(--light-blue);
+    --chart-4: var(--accent);
+    --chart-5: 300 80% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    font-family: 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .skill-teach {
+    @apply bg-accent/70 dark:bg-accent/30 text-primary dark:text-accent rounded-full px-3 py-1 text-sm;
+  }
+  
+  .skill-learn {
+    @apply bg-[#94B4C1]/70 dark:bg-[#94B4C1]/30 text-primary dark:text-[#94B4C1] rounded-full px-3 py-1 text-sm;
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.3s ease-in;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .spinner {
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 3px solid hsl(var(--secondary));
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+  }
+  
+  .dark .spinner {
+    border-top: 3px solid hsl(var(--light-blue));
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+}
