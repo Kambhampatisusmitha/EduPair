@@ -1,0 +1,93 @@
+# EduPair UI Design Prompt 2: Matching System & Request Management
+
+## Matching System
+Design an intuitive interface for EduPair's core matching functionality that helps users find and connect with perfect learning partners based on complementary skills.
+
+### 1. Dashboard/Home View
+- **Welcome Section**: Personalized greeting with quick stats (active pairings, pending requests)
+- **Suggested Matches Feed**:
+  - Card-based layout showing potential learning partners
+  - Each card includes:
+    - User name and photo (if available)
+    - Short bio (truncated with "read more" option)
+    - Matching skills clearly highlighted (Your Teach → Their Learn and Your Learn → Their Teach)
+    - Visual indicator showing match strength (based on number of skill overlaps)
+    - "Request to Pair" button
+  - Infinite scroll pagination or "Load More" button
+  - Empty state design when no matches available
+- **Quick Filters**: Allow sorting by match relevance, recently joined, or specific skills
+
+### 2. User Profile View
+- **Public Profile Display**:
+  - User photo and name prominently displayed
+  - Bio/summary section
+  - "Teach" skills section with skill tags in #547792 (teacher color)
+  - "Learn" skills section with skill tags in #94B4C1 (learner color)
+  - Previous pairing activity (number of successful pairings)
+  - Availability indicator (if implemented)
+- **Action Buttons**:
+  - "Request to Pair" (primary action in #213448)
+  - Report/flag user (secondary/subtle option)
+- **Empty states** for when profile data is incomplete
+
+### 3. Pairing Request Management
+- **Requests Inbox**:
+  - Tab navigation between "Incoming" and "Outgoing" requests
+  - Each request card shows:
+    - User info (name, photo)
+    - Relevant matching skills highlighted
+    - Request status badge: "Pending", "Accepted", "Declined", "Cancelled"
+    - Timestamp of request
+  - For incoming requests:
+    - "Accept" button (in #ECEFCA or similar positive color)
+    - "Decline" button (subtle/secondary styling)
+  - For outgoing requests:
+    - "Cancel Request" option
+    - Status indicator
+  - Empty states for both tabs
+
+### 4. Pairing Confirmation Flow
+- **Accept Confirmation Modal**:
+  - Congratulatory message about the match
+  - Summary of matching skills
+  - Date/time selector for scheduling the session
+    - Calendar date picker
+    - Time slot selection
+    - Duration option
+  - Optional: location preference (online/in-person)
+  - "Schedule" and "Maybe Later" buttons
+- **Session Details Card** (after accepting):
+  - Displays all session details
+  - Options to:
+    - Reschedule (changes date/time)
+    - Cancel session
+    - Add to personal calendar (download ICS file)
+    - Send message/reminder (if messaging implemented)
+
+### 5. Decline/Cancel Handling
+- **Decline Request Modal**:
+  - Gentle confirmation message
+  - Optional reason selection (for internal metrics, not shared)
+  - Clear feedback that this won't be shown to the requester
+- **Cancel Session Modal**:
+  - Confirmation of cancellation
+  - Optional reason field
+  - Information about cancellation policy
+
+## Public Discovery Mode
+- **Explore Section** (accessible without login):
+  - Grid or list view of user cards showing teach/learn skills
+  - Search bar for finding specific skills
+  - Filter options:
+    - By teach skill
+    - By learn skill
+    - Alphabetical sorting
+    - Recently active
+  - Each card shows:
+    - User name and photo
+    - Teach skills (as tags)
+    - Learn skills (as tags)
+    - "View Profile" button (leads to public profile)
+    - "Request to Pair" button (only visible when logged in)
+  - Attractive empty states and loading indicators
+  - Infinite scroll or pagination
