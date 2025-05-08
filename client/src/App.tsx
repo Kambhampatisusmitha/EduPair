@@ -4,6 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing-page";
 import Dashboard from "@/pages/dashboard";
+import MatchesPage from "@/pages/matches";
+import SessionsPage from "@/pages/sessions";
+import UserProfile from "@/pages/user-profile";
 import { AuthProvider } from "@/contexts/auth-context";
 import MainLayout from "@/layouts/main-layout";
 import AppShell from "@/layouts/app-shell";
@@ -16,6 +19,27 @@ function Router() {
         {() => (
           <AppShell>
             <Dashboard />
+          </AppShell>
+        )}
+      </Route>
+      <Route path="/matches">
+        {() => (
+          <AppShell>
+            <MatchesPage />
+          </AppShell>
+        )}
+      </Route>
+      <Route path="/sessions">
+        {() => (
+          <AppShell>
+            <SessionsPage />
+          </AppShell>
+        )}
+      </Route>
+      <Route path="/users/:id">
+        {(params) => (
+          <AppShell>
+            <UserProfile />
           </AppShell>
         )}
       </Route>

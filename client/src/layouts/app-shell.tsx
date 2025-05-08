@@ -38,7 +38,7 @@ export default function AppShell({ children }: AppShellProps) {
   const navItems = [
     { icon: Home, label: "Dashboard", path: "/dashboard" },
     { icon: Users, label: "Matches", path: "/matches" },
-    { icon: Calendar, label: "Calendar", path: "/calendar" },
+    { icon: Calendar, label: "Sessions", path: "/sessions" },
     { icon: Compass, label: "Explore", path: "/explore" },
     { icon: BarChart2, label: "Analytics", path: "/analytics" },
   ];
@@ -71,15 +71,17 @@ export default function AppShell({ children }: AppShellProps) {
               {/* Desktop Navigation */}
               <div className="hidden md:flex space-x-4">
                 {navItems.map((item) => (
-                  <Link key={item.path} href={item.path}>
-                    <a className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  <Link 
+                    key={item.path} 
+                    href={item.path}
+                    className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                       location === item.path
                         ? "text-primary dark:text-white bg-secondary/10 dark:bg-secondary/20"
                         : "text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
-                    }`}>
-                      <item.icon className="mr-1.5 h-5 w-5" />
-                      {item.label}
-                    </a>
+                    }`}
+                  >
+                    <item.icon className="mr-1.5 h-5 w-5" />
+                    {item.label}
                   </Link>
                 ))}
               </div>
@@ -144,19 +146,15 @@ export default function AppShell({ children }: AppShellProps) {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                      <a className="flex items-center">
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
-                      </a>
+                    <Link href="/profile" className="flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings">
-                      <a className="flex items-center">
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Settings</span>
-                      </a>
+                    <Link href="/settings" className="flex items-center">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -175,15 +173,17 @@ export default function AppShell({ children }: AppShellProps) {
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-card border-t border-border z-10">
         <div className="flex justify-around items-center h-16">
           {navItems.map((item) => (
-            <Link key={item.path} href={item.path}>
-              <a className={`flex flex-col items-center justify-center pt-2 pb-1 px-1 ${
+            <Link 
+              key={item.path} 
+              href={item.path}
+              className={`flex flex-col items-center justify-center pt-2 pb-1 px-1 ${
                 location === item.path
                   ? "text-primary dark:text-white"
                   : "text-gray-600 dark:text-gray-300"
-              }`}>
-                <item.icon className="h-6 w-6" />
-                <span className="text-xs mt-1">{item.label}</span>
-              </a>
+              }`}
+            >
+              <item.icon className="h-6 w-6" />
+              <span className="text-xs mt-1">{item.label}</span>
             </Link>
           ))}
         </div>

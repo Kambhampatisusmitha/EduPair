@@ -1,32 +1,36 @@
+import { ReactNode } from "react";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { X } from "lucide-react";
+import { Presentation, BookOpen } from "lucide-react";
 
 interface SkillTagProps {
-  children: React.ReactNode;
+  children: ReactNode;
   type: "teach" | "learn";
   className?: string;
-  onRemove?: () => void;
 }
 
-export default function SkillTag({ children, type, className, onRemove }: SkillTagProps) {
+/**
+ * SkillTag component displays a skill with a visual indicator of whether it's 
+ * something the user teaches or wants to learn
+ */
+export default function SkillTag({ children, type, className }: SkillTagProps) {
   return (
-    <div 
+    <Badge 
+      variant="outline"
       className={cn(
-        "rounded-full px-3 py-1 text-sm flex items-center",
-        type === "teach" ? "skill-teach" : "skill-learn",
+        "flex items-center gap-1 py-1 px-3 text-sm font-medium",
+        type === "teach" 
+          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" 
+          : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
         className
       )}
     >
-      {children}
-      {onRemove && (
-        <button 
-          onClick={onRemove} 
-          className="ml-1 text-primary dark:text-accent"
-          aria-label="Remove skill"
-        >
-          <X className="h-4 w-4" />
-        </button>
+      {type === "teach" ? (
+        <Presentation className="h-3 w-3 text-current" />
+      ) : (
+        <BookOpen className="h-3 w-3 text-current" />
       )}
-    </div>
+      {children}
+    </Badge>
   );
 }
