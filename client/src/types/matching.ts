@@ -49,6 +49,8 @@ export interface LearningSession {
   createdAt: string;
   updatedAt: string;
   participants: SessionParticipant[];
+  teachSkills?: string[];  // Skills being taught in this session
+  learnSkills?: string[];  // Skills being learned in this session
 }
 
 // Session participant
