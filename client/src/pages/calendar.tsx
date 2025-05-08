@@ -842,13 +842,20 @@ export default function CalendarPage() {
   
   // Fetch user sessions
   const { 
-    data: sessions, 
+    data: sessionsRaw, 
     isLoading,
     isError
   } = useQuery({
     queryKey: ['/api/sessions'],
     queryFn: getQueryFn<LearningSession[]>({ on401: "throw" })
   });
+  
+  // Add mock skill data for visualization purposes (in a real app this would come from the API)
+  const sessions = (sessionsRaw || []).map(session => ({
+    ...session,
+    teachSkills: session.teachSkills || ["JavaScript", "React", "UI Design"],
+    learnSkills: session.learnSkills || ["Python", "Data Analysis", "UX Research"]
+  }));
   
   // Handle session click
   const handleSessionClick = (session: LearningSession) => {
