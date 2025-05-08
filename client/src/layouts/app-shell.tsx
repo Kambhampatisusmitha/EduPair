@@ -9,7 +9,8 @@ import {
   User, 
   Settings, 
   Bell, 
-  LogOut 
+  LogOut,
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,8 +39,8 @@ export default function AppShell({ children }: AppShellProps) {
   const navItems = [
     { icon: Home, label: "Dashboard", path: "/dashboard" },
     { icon: Users, label: "Matches", path: "/matches" },
-    { icon: Calendar, label: "Sessions", path: "/sessions" },
-    { icon: Compass, label: "Explore", path: "/explore" },
+    { icon: Clock, label: "Sessions", path: "/sessions" },
+    { icon: Calendar, label: "Calendar", path: "/calendar" },
     { icon: BarChart2, label: "Analytics", path: "/analytics" },
   ];
 

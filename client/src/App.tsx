@@ -6,6 +6,7 @@ import LandingPage from "@/pages/landing-page";
 import Dashboard from "@/pages/dashboard";
 import MatchesPage from "@/pages/matches";
 import SessionsPage from "@/pages/sessions";
+import CalendarPage from "@/pages/calendar";
 import UserProfile from "@/pages/user-profile";
 import { AuthProvider } from "@/contexts/auth-context";
 import MainLayout from "@/layouts/main-layout";
@@ -33,6 +34,13 @@ function Router() {
         {() => (
           <AppShell>
             <SessionsPage />
+          </AppShell>
+        )}
+      </Route>
+      <Route path="/calendar">
+        {() => (
+          <AppShell>
+            <CalendarPage />
           </AppShell>
         )}
       </Route>

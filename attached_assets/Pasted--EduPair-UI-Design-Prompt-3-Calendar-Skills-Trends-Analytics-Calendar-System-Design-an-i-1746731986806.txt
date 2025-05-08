@@ -1,0 +1,106 @@
+# EduPair UI Design Prompt 3: Calendar, Skills Trends & Analytics
+
+## Calendar System
+Design an intuitive calendar interface that helps users manage their scheduled learning sessions effectively.
+
+### 1. Pairing Calendar View
+- **Month/Week/Day Toggle Views**:
+  - Default to monthly view with ability to switch to week or day view
+  - Clear highlighting of current date
+  - Navigation controls to move between time periods
+- **Session Display**:
+  - Each scheduled session shown as a block in the calendar
+  - Color-coded based on whether user is teaching or learning
+    - Teaching sessions: #547792 (teal blue)
+    - Learning sessions: #94B4C1 (soft blue)
+  - Each calendar entry shows:
+    - Partner's name
+    - Skill focus of the session
+    - Time slot (if specified)
+  - Visual distinction between upcoming and past sessions
+- **Session Interaction**:
+  - Click/tap on session to expand details
+  - Quick actions from expanded view:
+    - View full details
+    - Reschedule
+    - Cancel
+    - Add reminder
+- **Empty Calendar States**:
+  - Attractive placeholder for users with no scheduled sessions
+  - Suggestion prompts to find matches
+
+### 2. Session Detail View
+- **Comprehensive Session Information**:
+  - Partner details (name, photo, brief bio)
+  - Session focus (specific skill)
+  - Date and time
+  - Duration
+  - Mode (online/in-person, if implemented)
+  - Notes field (optional)
+- **Action Buttons**:
+  - "Add to Calendar" (exports ICS file)
+  - "Reschedule" option
+  - "Cancel Session" option
+- **Post-Session Options** (for completed sessions):
+  - Mark as completed
+  - Rate experience (if implemented)
+  - Schedule follow-up session
+
+## Skills Trends & Analytics
+Design insightful analytics interfaces that show both platform-wide trends and personal statistics.
+
+### 1. Platform Skills Trends
+- **Top Skills Visualization**:
+  - Bar charts showing top 5 most requested "Learn" skills
+  - Bar charts showing top 5 most offered "Teach" skills
+  - Use brand colors (#213448, #547792, #94B4C1, #ECEFCA) for visualization
+  - Clear legends and labels
+  - Time period selector (last month, 3 months, all time)
+- **Trending Skills Section**:
+  - Visual display of rapidly growing skills
+  - Percentage increase indicators
+  - Option to add trending skills to your profile
+
+### 2. Personal Analytics Dashboard
+- **User Pairing Statistics**:
+  - Summary cards showing:
+    - Total pairings completed
+    - Number of requests sent
+    - Number of requests received
+    - Acceptance rate (percentage)
+  - Clean visualizations for these metrics
+- **Skill Engagement Breakdown**:
+  - Which of your "Teach" skills are most requested
+  - Which of your "Learn" skills have the most available teachers
+  - Sessions completed per skill
+- **Activity Timeline**:
+  - Graph showing pairing activity over time
+  - Milestone indicators for significant events
+  - Comparison with average platform engagement (optional)
+- **Community Contribution**:
+  - Hours spent teaching others
+  - Visualization of teaching:learning ratio
+  - Positive reinforcement of contribution
+
+### 3. Dark Mode Implementation
+- **Comprehensive Dark Mode Support**:
+  - All screens and components must have dark mode variants
+  - Dark background using darker shades of #213448
+  - Light text and elements using lighter variants of #ECEFCA
+  - Maintain sufficient contrast for accessibility
+  - Preserve brand color identity while adapting to dark palette
+- **Theme Toggle**:
+  - Accessible toggle in consistent location (header or settings)
+  - Smooth transition animation between modes
+  - Remember user preference across sessions using local storage
+  - Default to system preference initially
+
+## Responsive Considerations
+- **All Views Responsive**:
+  - Calendar view adapts gracefully to mobile (list view option for smaller screens)
+  - Analytics charts resize appropriately or transform to mobile-friendly alternatives
+  - Touch-friendly controls throughout
+- **Mobile-Specific Features**:
+  - Swipe gestures for calendar navigation
+  - Condensed analytics view with expandable sections
+  - Bottom navigation bar for core functions

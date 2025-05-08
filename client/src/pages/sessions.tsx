@@ -261,7 +261,7 @@ export default function SessionsPage() {
           <h1 className="text-3xl font-heading font-bold text-primary dark:text-white">Learning Sessions</h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">Manage your scheduled skill exchange sessions</p>
         </div>
-        <div className="mt-4 md:mt-0">
+        <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-2">
           <Button 
             variant="outline" 
             size="sm" 
@@ -270,6 +270,15 @@ export default function SessionsPage() {
           >
             <RefreshCw className="h-4 w-4 mr-1" />
             Refresh
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.location.href = "/calendar"}
+            className="flex items-center"
+          >
+            <Calendar className="h-4 w-4 mr-1" />
+            Calendar View
           </Button>
         </div>
       </div>
