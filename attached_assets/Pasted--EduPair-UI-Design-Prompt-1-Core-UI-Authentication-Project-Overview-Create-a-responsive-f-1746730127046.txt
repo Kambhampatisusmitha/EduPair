@@ -1,0 +1,81 @@
+# EduPair UI Design Prompt 1: Core UI & Authentication
+
+## Project Overview
+Create a responsive frontend for EduPair - a peer-to-peer skill exchange platform where users can find learning partners with complementary skills. The interface should feel friendly, supportive, and focused on community learning.
+
+## Brand Colors
+- Primary blue: #213448 (deep navy - for headers, primary buttons)
+- Secondary blue: #547792 (teal blue - for secondary elements, highlights)
+- Light blue: #94B4C1 (soft blue - for backgrounds, cards)
+- Accent yellow: #ECEFCA (soft yellow - for accents, highlights, success states)
+
+## Core Design Requirements
+1. **Responsive Design**: Must work seamlessly on mobile, tablet, and desktop
+2. **Dark/Light Mode**: Toggle between themes with persistent user preference
+   - Dark mode: Use darker variants of the brand colors with light text
+   - Light mode: Use lighter variants with dark text
+3. **Typography**: Clean, readable fonts that convey a modern educational feel
+4. **Navigation**: Simple, intuitive navigation with clear iconography
+5. **Loading States**: Elegant loading indicators for all async operations
+
+## Authentication Screens
+### 1. Landing Page (Public)
+- Hero section explaining EduPair's concept: "Find your perfect learning partner"
+- Brief explanation of how the skill-swap concept works
+- Prominent call-to-action buttons: "Sign Up" and "Log In"
+- Preview of trending skills section (read-only for non-authenticated users)
+
+### 2. Sign Up Screen
+- Form fields:
+  - Full Name
+  - Email Address
+  - Password (with strength indicator)
+  - Confirm Password
+- Terms and conditions checkbox
+- "Already have an account?" link to login
+- Form validation with helpful error messages
+
+### 3. Login Screen
+- Email and password fields
+- "Remember me" checkbox
+- "Forgot password?" link
+- "Don't have an account?" link to sign up
+- Clear validation feedback
+
+### 4. First-time User Onboarding
+- Welcome greeting with brief platform explanation
+- Profile setup wizard:
+  1. Basic profile (optional photo upload, short bio)
+  2. "Skills I can Teach" selection (up to 3)
+  3. "Skills I want to Learn" selection (up to 3)
+  4. Confirmation screen showing completed profile
+
+## Main Application Shell
+- Persistent navigation:
+  - Home/Dashboard
+  - Matches
+  - Calendar
+  - Explore
+  - Analytics
+  - Profile/Settings
+- Dark/Light mode toggle in header or settings
+- Notification bell for pairing requests and updates
+- User profile quick access
+- Clean footer with links to terms, privacy policy, and help
+
+## Profile Management
+- Edit profile section:
+  - Update photo
+  - Edit bio/summary
+  - Manage "Teach" skills (add/remove up to 3)
+  - Manage "Learn" skills (add/remove up to 3)
+- Skills can be selected from a dropdown of popular skills or added as custom tags
+- Visual indication of which skills are most in-demand
+
+## Design System Elements
+- Button styles (primary, secondary, tertiary, danger)
+- Form elements (inputs, dropdowns, checkboxes, radio buttons)
+- Card components for user profiles and skill displays
+- Modal dialogs for confirmations and quick actions
+- Toast notifications for success/error feedback
+- Skill tag visual design (different styling for "Teach" vs "Learn" skills)
