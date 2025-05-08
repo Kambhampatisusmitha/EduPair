@@ -37,10 +37,10 @@ export default function ThemeToggle() {
       <span className="sr-only">{theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}</span>
       
       <span className="absolute inset-0 transform transition-transform duration-500 ease-in-out">
-        <span className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${theme === 'dark' ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>
+        <span className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${theme === 'light' ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'}`}>
           <SunIcon className="h-5 w-5" />
         </span>
-        <span className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${theme === 'dark' ? 'opacity-0 -rotate-90' : 'opacity-100 rotate-0'}`}>
+        <span className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${theme === 'dark' ? 'opacity-100 rotate-0' : 'opacity-0 -rotate-90'}`}>
           <MoonIcon className="h-5 w-5" />
         </span>
       </span>

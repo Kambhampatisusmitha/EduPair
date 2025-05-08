@@ -13,7 +13,7 @@ interface SkillTagProps {
 }
 
 // Map skills to appropriate icons based on their names
-const getSkillIcon = (skill: string) => {
+const getSkillIcon = (skill: string, skillType: "teach" | "learn") => {
   const skillLower = typeof skill === 'string' ? skill.toLowerCase() : '';
   
   if (skillLower.includes('code') || skillLower.includes('java') || skillLower.includes('python') || 
@@ -38,7 +38,7 @@ const getSkillIcon = (skill: string) => {
   }
   
   // Default icons based on teach/learn type
-  return type === "teach" ? Presentation : GraduationCap;
+  return skillType === "teach" ? Presentation : GraduationCap;
 };
 
 /**
@@ -54,7 +54,7 @@ export default function SkillTag({
   className 
 }: SkillTagProps) {
   const skillContent = typeof children === 'string' ? children : 'Skill';
-  const IconComponent = getSkillIcon(skillContent as string);
+  const IconComponent = getSkillIcon(skillContent as string, type);
   
   const sizeClasses = {
     sm: "text-xs py-0.5 px-2 gap-1",
