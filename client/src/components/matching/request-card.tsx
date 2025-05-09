@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -15,10 +16,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon, XCircle, CheckCircle, Clock, MapPin } from "lucide-react";
+import { format, addDays } from "date-fns";
+import { Calendar as CalendarIcon, XCircle, CheckCircle, Clock, MapPin, ArrowRight, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SkillTag from "@/components/ui/skill-tag";
 import { PairingRequestWithUsers } from "@/types/matching";
@@ -31,9 +33,15 @@ interface RequestCardProps {
 
 export default function RequestCard({ request, type, onUpdate }: RequestCardProps) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const [isAcceptModalOpen, setIsAcceptModalOpen] = useState(false);
   const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
-  const [scheduledDate, setScheduledDate] = useState<Date>();
+  const [isViewDetailsModalOpen, setIsViewDetailsModalOpen] = useState(false);
+  
+  // Set default scheduled date to tomorrow at current time
+  const tomorrow = addDays(new Date(), 1);
+  const [scheduledDate, setScheduledDate] = useState<Date>(tomorrow);
   const [duration, setDuration] = useState<string>("60");
   const [location, setLocation] = useState<string>("online");
   const [notes, setNotes] = useState<string>("");
@@ -82,9 +90,23 @@ export default function RequestCard({ request, type, onUpdate }: RequestCardProp
       return apiRequest("PATCH", `/api/pairing-requests/${request.id}`, { status });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/pairing-requests"] });
       onUpdate();
       setIsAcceptModalOpen(false);
       setIsDeclineModalOpen(false);
+      
+      const statusMessage = {
+        accepted: "Request accepted successfully",
+        declined: "Request declined",
+        cancelled: "Request cancelled"
+      };
+      
+      toast({
+        title: statusMessage[status as keyof typeof statusMessage] || "Request updated",
+        description: status === "accepted" ? 
+          `You've accepted the request from ${otherUser.displayName || otherUser.fullname}` : 
+          undefined,
+      });
     },
     onError: (error: any) => {
       toast({
@@ -108,13 +130,19 @@ export default function RequestCard({ request, type, onUpdate }: RequestCardProp
         notes: notes || undefined
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
       toast({
         title: "Session scheduled",
         description: `Your learning session with ${displayName} has been scheduled.`,
       });
       setIsAcceptModalOpen(false);
       updateRequestMutation.mutate("accepted");
+      
+      // Navigate to sessions page after a short delay
+      setTimeout(() => {
+        navigate("/sessions");
+      }, 1000);
     },
     onError: (error: any) => {
       toast({
@@ -135,16 +163,21 @@ export default function RequestCard({ request, type, onUpdate }: RequestCardProp
 
   const handleDecline = () => {
     updateRequestMutation.mutate("declined");
+    setIsDeclineModalOpen(false);
   };
 
   const handleCancel = () => {
     updateRequestMutation.mutate("cancelled");
   };
+  
+  const handleViewProfile = () => {
+    navigate(`/users/${otherUser.id}`);
+  };
 
   // Render for both incoming and outgoing requests
   return (
     <>
-      <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+      <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-all duration-300 bg-white dark:bg-card">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center">
             <Avatar className="h-10 w-10">
@@ -200,23 +233,21 @@ export default function RequestCard({ request, type, onUpdate }: RequestCardProp
         )}
         
         {/* Action buttons */}
-        <div className="mt-4 flex space-x-2">
+        <div className="mt-4 flex flex-col sm:flex-row gap-2">
           {/* Incoming request actions */}
           {type === "incoming" && request.status === "pending" && (
             <>
               <Button 
                 variant="default" 
-                size="sm"
-                className="bg-green-600 hover:bg-green-700"
+                className="flex-1 bg-success hover:bg-success/90"
                 onClick={() => setIsAcceptModalOpen(true)}
               >
                 <CheckCircle className="h-4 w-4 mr-1" />
-                Accept
+                Accept & Schedule
               </Button>
               <Button 
                 variant="outline" 
-                size="sm"
-                className="text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400 dark:hover:bg-red-950"
+                className="flex-1 text-error border-error/30 hover:bg-error/10 dark:text-error dark:border-error/30 dark:hover:bg-error/20"
                 onClick={() => setIsDeclineModalOpen(true)}
               >
                 <XCircle className="h-4 w-4 mr-1" />
@@ -227,23 +258,67 @@ export default function RequestCard({ request, type, onUpdate }: RequestCardProp
           
           {/* Outgoing request actions */}
           {type === "outgoing" && request.status === "pending" && (
+            <div className="flex gap-2 w-full">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={handleViewProfile}
+              >
+                View Profile
+              </Button>
+              <Button 
+                variant="outline" 
+                className="flex-1 text-error border-error/30 hover:bg-error/10 dark:text-error dark:border-error/30 dark:hover:bg-error/20"
+                onClick={handleCancel}
+              >
+                <XCircle className="h-4 w-4 mr-1" />
+                Cancel Request
+              </Button>
+            </div>
+          )}
+          
+          {/* Accepted request actions */}
+          {request.status === "accepted" && (
             <Button 
-              variant="outline" 
-              size="sm"
-              className="text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400 dark:hover:bg-red-950"
-              onClick={handleCancel}
+              variant="default"
+              className="w-full bg-teal hover:bg-teal/90"
+              onClick={() => navigate('/sessions')}
             >
-              Cancel Request
+              <ArrowRight className="h-4 w-4 mr-1" />
+              View Session
             </Button>
+          )}
+          
+          {/* Declined/Cancelled request actions */}
+          {(request.status === "declined" || request.status === "cancelled") && (
+            <div className="flex gap-2 w-full">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={handleViewProfile}
+              >
+                View Profile
+              </Button>
+              {type === "incoming" && request.status === "declined" && (
+                <Button 
+                  variant="outline" 
+                  className="flex-1 text-amber border-amber/30 hover:bg-amber/10"
+                  onClick={() => setIsViewDetailsModalOpen(true)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-1" />
+                  View Details
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
       
       {/* Accept Modal with scheduling */}
       <Dialog open={isAcceptModalOpen} onOpenChange={setIsAcceptModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Accept Pairing Request</DialogTitle>
+            <DialogTitle className="text-xl font-heading text-deep-indigo dark:text-white">Accept & Schedule Session</DialogTitle>
             <DialogDescription>
               Schedule a learning session with {displayName} to exchange skills.
             </DialogDescription>
@@ -343,9 +418,9 @@ export default function RequestCard({ request, type, onUpdate }: RequestCardProp
       
       {/* Decline Confirmation Modal */}
       <Dialog open={isDeclineModalOpen} onOpenChange={setIsDeclineModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Decline Pairing Request</DialogTitle>
+            <DialogTitle className="text-xl font-heading text-deep-indigo dark:text-white">Decline Pairing Request</DialogTitle>
             <DialogDescription>
               Are you sure you want to decline the pairing request from {displayName}?
             </DialogDescription>
@@ -365,10 +440,88 @@ export default function RequestCard({ request, type, onUpdate }: RequestCardProp
               onClick={handleDecline}
               disabled={updateRequestMutation.isPending}
             >
-              {updateRequestMutation.isPending ? 
-                "Declining..." : 
-                "Decline Request"
-              }
+              {updateRequestMutation.isPending ? "Declining..." : "Decline Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* View Details Modal */}
+      <Dialog open={isViewDetailsModalOpen} onOpenChange={setIsViewDetailsModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-heading text-deep-indigo dark:text-white">Request Details</DialogTitle>
+            <DialogDescription>
+              Details of the pairing request from {displayName}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Skills Exchange</h4>
+              <div className="bg-rich-cream dark:bg-charcoal p-4 rounded-lg space-y-4 border border-gray-200 dark:border-gray-700">
+                {request.teachSkills.length > 0 && (
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">
+                      {type === "incoming" ? `${displayName} can teach you:` : `You can teach ${displayName}:`}
+                    </h5>
+                    <div className="flex flex-wrap gap-2">
+                      {request.teachSkills.map(skill => (
+                        <SkillTag key={skill} type="learn">{skill}</SkillTag>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {request.learnSkills.length > 0 && (
+                  <div>
+                    <h5 className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">
+                      {type === "incoming" ? `You can teach ${displayName}:` : `${displayName} can teach you:`}
+                    </h5>
+                    <div className="flex flex-wrap gap-2">
+                      {request.learnSkills.map(skill => (
+                        <SkillTag key={skill} type="teach">{skill}</SkillTag>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {request.message && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold">Message</h4>
+                <div className="bg-white dark:bg-deep-indigo/20 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 italic">"{request.message}"</p>
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Request Status</h4>
+              <div className="bg-white dark:bg-deep-indigo/20 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2">
+                  <Badge className={cn(
+                    request.status === "pending" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" :
+                    request.status === "accepted" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" :
+                    "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                  )}>
+                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                  </Badge>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    {formatDate(request.updatedAt)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => setIsViewDetailsModalOpen(false)}
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

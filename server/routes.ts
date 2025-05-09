@@ -390,23 +390,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // === Matches Routes ===
-  // Get suggested matches
-  app.get("/api/matches/suggested", isAuthenticated, async (req: Request, res: Response) => {
+  // Simple test endpoint to check API accessibility
+  app.get("/api/matches/test", async (req: Request, res: Response) => {
+    console.log("[TEST] Test endpoint called");
+    return res.status(200).json({ message: "API is working" });
+  });
+
+  // Get suggested matches - with fallback for debugging
+  app.get("/api/matches/suggested", async (req: Request, res: Response) => {
     try {
-      const userId = req.session!.userId!;
+      console.log("[MATCHES] Endpoint called: /api/matches/suggested");
+      
+      // Check if user is authenticated
+      const userId = req.session?.userId;
+      if (!userId) {
+        console.log("[MATCHES] No authenticated user found");
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = parseInt(req.query.offset as string) || 0;
       
+      console.log("[MATCHES] Request parameters:", {
+        userId,
+        limit,
+        offset
+      });
+      
+      // Get user to check if they exist and have skills
+      const user = await storage.getUser(userId);
+      if (!user) {
+        console.log("[MATCHES] User not found:", userId);
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      console.log("[MATCHES] User skills:", {
+        teachSkills: user.teachSkills,
+        learnSkills: user.learnSkills
+      });
+      
+      // Check if user has skills defined
+      if (!user.teachSkills?.length || !user.learnSkills?.length) {
+        console.log("[MATCHES] User has no skills defined");
+        return res.status(200).json([]);
+      }
+      
+      // Call the storage method to get matches
+      console.log("[MATCHES] Calling storage.getSuggestedMatches");
       const suggestedMatches = await storage.getSuggestedMatches({
         userId,
         limit,
         offset
       });
       
-      res.status(200).json(suggestedMatches);
+      console.log("[MATCHES] Found matches count:", suggestedMatches.length);
+      if (suggestedMatches.length > 0) {
+        console.log("[MATCHES] First match:", {
+          userId: suggestedMatches[0].user.id,
+          matchScore: suggestedMatches[0].matchScore,
+          youCanTeachThem: suggestedMatches[0].matchingLearnSkills,
+          theyCanTeachYou: suggestedMatches[0].matchingTeachSkills
+        });
+      }
+      
+      console.log("[MATCHES] Sending response with", suggestedMatches.length, "matches");
+      return res.status(200).json(suggestedMatches);
     } catch (error) {
-      console.error("Error getting suggested matches:", error);
-      res.status(500).json({ message: "Failed to get suggested matches" });
+      console.error("[MATCHES] Error getting suggested matches:", error);
+      return res.status(500).json({ message: "Failed to get suggested matches" });
     }
   });
   
@@ -453,25 +504,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/pairing-requests", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = req.session!.userId!;
-      const { status } = req.query;
-      const typeParam = req.query.type as string | undefined;
-      
-      if (typeParam && !['sent', 'received', 'all'].includes(typeParam)) {
-        return res.status(400).json({ message: "Invalid request type" });
-      }
-      
-      // Default to 'all' if type is not provided or invalid
-      const requestType = (typeParam === 'sent' || typeParam === 'received') ? typeParam : 'all';
-      
+      const { type = "all", status } = req.query;
+      console.log("[PAIRING REQUESTS] userId:", userId, "type:", type, "status:", status);
       const requests = await storage.getPairingRequests({
         userId,
-        status: status ? String(status) : undefined,
-        type: requestType
+        type: type as any,
+        status: status as string | undefined,
       });
-      
-      res.status(200).json(requests);
-    } catch (error) {
-      console.error(error);
+      console.log("[PAIRING REQUESTS] result count:", requests.length);
+      if (requests.length > 0) {
+        console.log("[PAIRING REQUESTS] first result:", requests[0]);
+      }
+      res.json(requests);
+    } catch (err) {
+      console.error("[PAIRING REQUESTS] error:", err);
       res.status(500).json({ message: "Failed to fetch pairing requests" });
     }
   });
@@ -509,10 +555,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update the request
       const updatedRequest = await storage.updatePairingRequestStatus(requestId, status);
       
-      res.status(200).json(updatedRequest);
+      // If accepted, create a session if not already created
+      let session = null;
+      if (status === "accepted") {
+        // Check if a session already exists for this request
+        const existingSessions = await storage.getUserSessions({ userId, status: undefined });
+        const sessionForRequest = existingSessions.find(s => s.requestId === requestId);
+        if (!sessionForRequest) {
+          // Create a session for both users, default to 1 hour from now
+          const scheduledDate = new Date();
+          scheduledDate.setHours(scheduledDate.getHours() + 1);
+          session = await storage.createSession({
+            requestId,
+            scheduledDate,
+            duration: 60,
+            location: "online",
+            notes: "Initial session scheduled after match."
+          }, [request.requesterId, request.recipientId]);
+        } else {
+          session = sessionForRequest;
+        }
+      }
+      
+      res.status(200).json({ request: updatedRequest, session });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "Failed to update pairing request" });
+    }
+  });
+
+  // Delete a pairing request (remove from both dashboards)
+  app.delete("/api/pairing-requests/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const requestId = parseInt(req.params.id);
+      if (isNaN(requestId)) {
+        return res.status(400).json({ message: "Invalid request ID" });
+      }
+      const userId = req.session!.userId!;
+      const request = await storage.getPairingRequest(requestId);
+      if (!request) {
+        return res.status(404).json({ message: "Pairing request not found" });
+      }
+      // Only requester or recipient can delete
+      if (request.requesterId !== userId && request.recipientId !== userId) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      await storage.deletePairingRequest(requestId);
+      res.status(204).send();
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to delete pairing request" });
     }
   });
 

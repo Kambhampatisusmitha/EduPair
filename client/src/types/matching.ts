@@ -20,6 +20,8 @@ export interface SuggestedMatch {
   matchingTeachSkills: string[];
   matchingLearnSkills: string[];
   matchScore: number;
+  minSkillsExchanged?: number; // Minimum number of skills exchanged in either direction
+  totalSkillsExchanged?: number; // Total number of skills that can be exchanged
 }
 
 // Pairing request with both users involved (requesting user and recipient)

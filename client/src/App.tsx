@@ -14,6 +14,7 @@ import { AuthProvider } from "@/contexts/auth-context";
 import { ThemeProvider } from "@/contexts/theme-context";
 import MainLayout from "@/layouts/main-layout";
 import AppShell from "@/layouts/app-shell";
+import RequestNotification from "@/components/notifications/request-notification";
 
 function Router() {
   return (
@@ -82,6 +83,8 @@ function App() {
           <MainLayout>
             <Toaster />
             <Router />
+            {/* Notification system for pairing requests */}
+            <RequestNotification />
           </MainLayout>
         </TooltipProvider>
       </AuthProvider>

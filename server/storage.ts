@@ -16,6 +16,9 @@ import { db } from "./db";
 import { eq, and, or, desc, sql, inArray, not, like, ilike } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
+// Add this near the top of the file, after imports
+type RequestStatus = "pending" | "accepted" | "declined" | "cancelled";
+
 // Interface for Storage
 export interface IStorage {
   // User methods
@@ -31,6 +34,7 @@ export interface IStorage {
   getPairingRequestByUsers(requesterId: number, recipientId: number): Promise<PairingRequest | undefined>;
   getPairingRequests(options: GetPairingRequestsOptions): Promise<(PairingRequest & { requester: Partial<User>, recipient: Partial<User> })[]>;
   updatePairingRequestStatus(id: number, status: string): Promise<PairingRequest>;
+  deletePairingRequest(id: number): Promise<void>;
   
   // Learning session methods
   createSession(session: CreateSession, participantIds: number[]): Promise<LearningSession & { participants: SessionParticipant[] }>;
@@ -74,6 +78,8 @@ export interface SuggestedMatch {
   matchingTeachSkills: string[];
   matchingLearnSkills: string[];
   matchScore: number;
+  minSkillsExchanged?: number;
+  totalSkillsExchanged?: number;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -93,7 +99,7 @@ export class DatabaseStorage implements IStorage {
       ...insertUser,
       displayName: insertUser.fullname,
       bio: "",
-      avatar: "",
+      avatar: null,
       teachSkills: [],
       learnSkills: []
     };
@@ -121,38 +127,29 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUsers(options: GetUsersOptions): Promise<Partial<User>[]> {
-    // Exclude current user and sensitive fields like password
-    let query = db
-      .select({
-        id: users.id,
-        fullname: users.fullname,
-        displayName: users.displayName,
-        bio: users.bio,
-        avatar: users.avatar,
-        teachSkills: users.teachSkills,
-        learnSkills: users.learnSkills,
-        createdAt: users.createdAt
-      })
-      .from(users)
-      .where(not(eq(users.id, options.currentUserId)))
-      .limit(options.limit)
-      .offset(options.offset);
-    
-    // Filter by teach skills if specified
+    // Build up the where clause
+    let whereExpr: any = not(eq(users.id, options.currentUserId));
     if (options.teachSkills && options.teachSkills.length > 0) {
-      query = query.where(
-        sql`${users.teachSkills} ?| array[${options.teachSkills.join(',')}]`
-      );
+      whereExpr = and(whereExpr, sql`${users.teachSkills} ?| array[${options.teachSkills.join(',')}]`);
     }
-    
-    // Filter by learn skills if specified
     if (options.learnSkills && options.learnSkills.length > 0) {
-      query = query.where(
-        sql`${users.learnSkills} ?| array[${options.learnSkills.join(',')}]`
-      );
+      whereExpr = and(whereExpr, sql`${users.learnSkills} ?| array[${options.learnSkills.join(',')}]`);
     }
-    
-    return query;
+    // Use object builder
+    return db.select({
+      id: users.id,
+      fullname: users.fullname,
+      displayName: users.displayName,
+      bio: users.bio,
+      avatar: users.avatar,
+      teachSkills: users.teachSkills,
+      learnSkills: users.learnSkills,
+      createdAt: users.createdAt
+    })
+    .from(users)
+    .where(whereExpr)
+    .limit(options.limit)
+    .offset(options.offset);
   }
 
   // === Pairing Request Methods ===
@@ -191,9 +188,35 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getPairingRequests(options: GetPairingRequestsOptions): Promise<(PairingRequest & { requester: Partial<User>, recipient: Partial<User> })[]> {
-    let query = db
+    const otherUsers = alias(users, "recipients");
+
+    // Build up the where clause
+    let whereExpr: any;
+    if (options.type === 'sent') {
+      whereExpr = eq(pairingRequests.requesterId, options.userId);
+    } else if (options.type === 'received') {
+      whereExpr = eq(pairingRequests.recipientId, options.userId);
+    } else {
+      whereExpr = or(
+        eq(pairingRequests.requesterId, options.userId),
+        eq(pairingRequests.recipientId, options.userId)
+      );
+    }
+
+    if (options.status) {
+      const validStatuses: RequestStatus[] = ["pending", "accepted", "declined", "cancelled"];
+      let statusValue: RequestStatus | undefined = undefined;
+      if (validStatuses.includes(options.status as RequestStatus)) {
+        statusValue = options.status as RequestStatus;
+      }
+      if (statusValue) {
+        whereExpr = and(whereExpr, eq(pairingRequests.status, statusValue));
+      }
+    }
+
+    // Use the correct Drizzle object builder pattern
+    return db
       .select({
-        // Request fields
         id: pairingRequests.id,
         requesterId: pairingRequests.requesterId,
         recipientId: pairingRequests.recipientId,
@@ -203,7 +226,6 @@ export class DatabaseStorage implements IStorage {
         message: pairingRequests.message,
         createdAt: pairingRequests.createdAt,
         updatedAt: pairingRequests.updatedAt,
-        // Requester fields (excluding password)
         requester: {
           id: users.id,
           fullname: users.fullname,
@@ -211,69 +233,40 @@ export class DatabaseStorage implements IStorage {
           avatar: users.avatar,
           teachSkills: users.teachSkills,
           learnSkills: users.learnSkills
+        },
+        recipient: {
+          id: otherUsers.id,
+          fullname: otherUsers.fullname,
+          displayName: otherUsers.displayName,
+          avatar: otherUsers.avatar,
+          teachSkills: otherUsers.teachSkills,
+          learnSkills: otherUsers.learnSkills
         }
       })
       .from(pairingRequests)
-      .innerJoin(users, eq(pairingRequests.requesterId, users.id));
-    
-    // Add recipient join
-    const otherUsers = alias(users, "recipients");
-    query = query.innerJoin(
-      otherUsers, 
-      eq(pairingRequests.recipientId, otherUsers.id)
-    ).select({
-      // Add recipient fields
-      recipient: {
-        id: otherUsers.id,
-        fullname: otherUsers.fullname,
-        displayName: otherUsers.displayName,
-        avatar: otherUsers.avatar,
-        teachSkills: otherUsers.teachSkills,
-        learnSkills: otherUsers.learnSkills
-      }
-    });
-    
-    // Apply filters
-    if (options.type === 'sent') {
-      query = query.where(eq(pairingRequests.requesterId, options.userId));
-    } else if (options.type === 'received') {
-      query = query.where(eq(pairingRequests.recipientId, options.userId));
-    } else {
-      // 'all' - show both sent and received
-      query = query.where(
-        or(
-          eq(pairingRequests.requesterId, options.userId),
-          eq(pairingRequests.recipientId, options.userId)
-        )
-      );
-    }
-    
-    // Filter by status if specified
-    if (options.status) {
-      query = query.where(eq(pairingRequests.status, options.status));
-    }
-    
-    // Order by most recent first
-    query = query.orderBy(desc(pairingRequests.createdAt));
-    
-    return query;
+      .innerJoin(users, eq(pairingRequests.requesterId, users.id))
+      .innerJoin(otherUsers, eq(pairingRequests.recipientId, otherUsers.id))
+      .where(whereExpr)
+      .orderBy(desc(pairingRequests.createdAt));
   }
   
   async updatePairingRequestStatus(id: number, status: string): Promise<PairingRequest> {
     const [updatedRequest] = await db
       .update(pairingRequests)
       .set({
-        status,
+        status: status as RequestStatus,
         updatedAt: new Date()
       })
       .where(eq(pairingRequests.id, id))
       .returning();
-      
     if (!updatedRequest) {
       throw new Error("Pairing request not found");
     }
-    
     return updatedRequest;
+  }
+
+  async deletePairingRequest(id: number): Promise<void> {
+    await db.delete(pairingRequests).where(eq(pairingRequests.id, id)).execute();
   }
 
   // === Learning Session Methods ===
@@ -283,22 +276,18 @@ export class DatabaseStorage implements IStorage {
       .insert(learningSessions)
       .values(session)
       .returning();
-      
     if (!createdSession) {
       throw new Error("Failed to create learning session");
     }
-    
     // Then create participant records
     const participantsData = participantIds.map(userId => ({
       sessionId: createdSession.id,
       userId
     }));
-    
     const participants = await db
       .insert(sessionParticipants)
       .values(participantsData)
       .returning();
-      
     return {
       ...createdSession,
       participants
@@ -310,16 +299,13 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(learningSessions)
       .where(eq(learningSessions.id, id));
-      
     if (!session) {
       return undefined;
     }
-    
     const participants = await db
       .select()
       .from(sessionParticipants)
       .where(eq(sessionParticipants.sessionId, session.id));
-      
     return {
       ...session,
       participants
@@ -334,29 +320,23 @@ export class DatabaseStorage implements IStorage {
       })
       .from(sessionParticipants)
       .where(eq(sessionParticipants.userId, options.userId));
-    
     if (userParticipations.length === 0) {
       return [];
     }
-    
     const sessionIds = userParticipations.map(p => p.sessionId);
-    
-    // Get sessions
-    let query = db
-      .select()
-      .from(learningSessions)
-      .where(inArray(learningSessions.id, sessionIds));
-    
-    // Filter by status if specified
+    // Build up the where clause
+    let whereExpr: any = inArray(learningSessions.id, sessionIds);
     if (options.status) {
-      query = query.where(eq(learningSessions.status, options.status));
+      const validStatuses = ["cancelled", "scheduled", "completed"];
+      if (validStatuses.includes(options.status)) {
+        whereExpr = and(whereExpr, eq(learningSessions.status, options.status as "cancelled" | "scheduled" | "completed"));
+      }
     }
-    
-    // Order by upcoming sessions first
-    query = query.orderBy(learningSessions.scheduledDate);
-    
-    const sessions = await query;
-    
+    // Use object builder
+    const sessions = await db.select()
+      .from(learningSessions)
+      .where(whereExpr)
+      .orderBy(learningSessions.scheduledDate);
     // Get participants for these sessions with user info
     const participants = await db
       .select({
@@ -378,7 +358,6 @@ export class DatabaseStorage implements IStorage {
       .from(sessionParticipants)
       .innerJoin(users, eq(sessionParticipants.userId, users.id))
       .where(inArray(sessionParticipants.sessionId, sessionIds));
-    
     // Combine sessions with their participants
     return sessions.map(session => {
       const sessionParticipants = participants.filter(p => p.sessionId === session.id);
@@ -393,88 +372,136 @@ export class DatabaseStorage implements IStorage {
     const [participant] = await db
       .select()
       .from(sessionParticipants)
-      .where(
-        and(
-          eq(sessionParticipants.sessionId, sessionId),
-          eq(sessionParticipants.userId, userId)
-        )
-      );
-      
+      .where(and(eq(sessionParticipants.sessionId, sessionId), eq(sessionParticipants.userId, userId)));
     return !!participant;
   }
   
   async updateSession(id: number, updateData: Partial<LearningSession>): Promise<LearningSession> {
-    const data = {
-      ...updateData,
-      updatedAt: new Date()
-    };
-    
     const [updatedSession] = await db
       .update(learningSessions)
-      .set(data)
+      .set(updateData)
       .where(eq(learningSessions.id, id))
       .returning();
-      
     if (!updatedSession) {
-      throw new Error("Learning session not found");
+      throw new Error("Session not found");
     }
-    
     return updatedSession;
   }
-
+  
   // === Matching Methods ===
   async getSuggestedMatches(options: GetSuggestedMatchesOptions): Promise<SuggestedMatch[]> {
-    // Get the current user
-    const currentUser = await this.getUser(options.userId);
-    if (!currentUser) {
-      throw new Error("User not found");
-    }
+    console.log("[MATCHES] Starting getSuggestedMatches for userId:", options.userId);
     
-    // Get all users except the current user
-    const otherUsers = await this.getUsers({
-      currentUserId: options.userId,
-      limit: 100,  // Get more users to increase chances of finding mutual benefit matches
-      offset: 0
-    });
-    
-    if (otherUsers.length === 0) {
-      return [];
-    }
-    
-    // Calculate match scores and filter for mutual benefit only
-    const mutualBenefitMatches: SuggestedMatch[] = [];
-    
-    for (const user of otherUsers) {
-      // Find skills where user can teach what current user wants to learn
-      const matchingTeachSkills = (user.teachSkills || []).filter(skill => 
-        (currentUser.learnSkills || []).includes(skill)
-      );
+    try {
+      // Get the current user
+      const currentUser = await this.getUser(options.userId);
+      if (!currentUser) {
+        console.log("[MATCHES] User not found:", options.userId);
+        return [];
+      }
+
+      // Log user skills for debugging
+      console.log("[MATCHES] Current user skills:", {
+        teachSkills: currentUser.teachSkills,
+        learnSkills: currentUser.learnSkills
+      });
       
-      // Find skills where user wants to learn what current user can teach
-      const matchingLearnSkills = (user.learnSkills || []).filter(skill => 
-        (currentUser.teachSkills || []).includes(skill)
-      );
+      // Handle empty arrays case
+      if (!currentUser.learnSkills?.length || !currentUser.teachSkills?.length) {
+        console.log("[MATCHES] User has no skills defined");
+        return [];
+      }
       
-      // Only include matches with mutual benefit (skills in both directions)
-      if (matchingTeachSkills.length > 0 && matchingLearnSkills.length > 0) {
-        // Calculate match score based on number of matching skills
-        const matchScore = matchingTeachSkills.length + matchingLearnSkills.length;
+      // Get all other users (excluding current user)
+      const allUsers = await db
+        .select()
+        .from(users)
+        .where(not(eq(users.id, options.userId)));
+      
+      console.log("[MATCHES] Found", allUsers.length, "other users to check for matches");
+      
+      // Implement the new mutual benefit matching algorithm
+      const suggestedMatches: SuggestedMatch[] = [];
+      
+      for (const otherUser of allUsers) {
+        // Skip users with no skills
+        if (!otherUser.teachSkills?.length || !otherUser.learnSkills?.length) {
+          console.log("[MATCHES] Skipping user", otherUser.id, "with no skills defined");
+          continue;
+        }
         
-        mutualBenefitMatches.push({
-          user,
-          matchingTeachSkills,
-          matchingLearnSkills,
-          matchScore
+        console.log("[MATCHES] Checking match with user:", otherUser.id, {
+          theirTeachSkills: otherUser.teachSkills,
+          theirLearnSkills: otherUser.learnSkills
+        });
+        
+        // Find skills that match in both directions
+        // What you can teach them (your teach skills that match their learn skills)
+        const youCanTeachThem = currentUser.teachSkills.filter(skill => 
+          otherUser.learnSkills?.includes(skill) ?? false
+        );
+        
+        // What they can teach you (their teach skills that match your learn skills)
+        const theyCanTeachYou = otherUser.teachSkills.filter(skill => 
+          currentUser.learnSkills?.includes(skill) ?? false
+        );
+        
+        console.log("[MATCHES] Match results for user", otherUser.id, {
+          youCanTeachThem,
+          theyCanTeachYou
+        });
+        
+        // A match exists if and only if there is at least one match in both directions
+        if (youCanTeachThem.length > 0 && theyCanTeachYou.length > 0) {
+          // Calculate match score
+          // Base score of 100 for having a mutual match
+          // Plus 10 points for each additional matching skill
+          const matchScore = 100 + ((youCanTeachThem.length + theyCanTeachYou.length) * 10);
+          
+          console.log("[MATCHES] Found mutual benefit match with user:", otherUser.id, {
+            matchScore,
+            youCanTeachThem,
+            theyCanTeachYou
+          });
+          
+          // Remove password from user object
+          const { password, ...userWithoutPassword } = otherUser;
+          
+          const minSkillsExchanged = Math.min(youCanTeachThem.length, theyCanTeachYou.length);
+          const totalSkillsExchanged = youCanTeachThem.length + theyCanTeachYou.length;
+          
+          suggestedMatches.push({
+            user: userWithoutPassword,
+            matchingTeachSkills: youCanTeachThem,   // What you can teach them
+            matchingLearnSkills: theyCanTeachYou,   // What they can teach you
+            matchScore,
+            minSkillsExchanged,
+            totalSkillsExchanged
+          });
+        } else {
+          console.log("[MATCHES] No mutual benefit match with user:", otherUser.id);
+        }
+      }
+      
+      // Sort by match score (highest first)
+      suggestedMatches.sort((a, b) => b.matchScore - a.matchScore);
+      
+      console.log("[MATCHES] Final matches count:", suggestedMatches.length);
+      if (suggestedMatches.length > 0) {
+        console.log("[MATCHES] First match details:", {
+          userId: suggestedMatches[0].user.id,
+          matchScore: suggestedMatches[0].matchScore,
+          youCanTeachThem: suggestedMatches[0].matchingLearnSkills,
+          theyCanTeachYou: suggestedMatches[0].matchingTeachSkills
         });
       }
+      
+      // Return paginated results
+      return suggestedMatches.slice(options.offset, options.offset + options.limit);
+    } catch (error) {
+      console.error("[MATCHES] Error in getSuggestedMatches:", error);
+      return [];
     }
-    
-    // Sort by match score (highest first) and limit results
-    const sortedMatches = mutualBenefitMatches
-      .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(options.offset, options.offset + options.limit);
-    
-    return sortedMatches;
   }
 }
 

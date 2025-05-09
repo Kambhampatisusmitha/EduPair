@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -275,6 +276,23 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [message, setMessage] = useState("");
   
+  // Get display name or fallback to full name
+  const displayName = match.user.displayName || match.user.fullname;
+  
+  // Calculate match quality based on minSkillsExchanged with safe fallback
+  const getMatchQuality = (minSkills: number | undefined) => {
+    if (!minSkills) return "Good";
+    if (minSkills >= 3) return "Excellent";
+    if (minSkills >= 2) return "Strong";
+    return "Good";
+  };
+  
+  const matchQuality = getMatchQuality(match.minSkillsExchanged);
+  
+  // Get safe values for skills exchanged
+  const minSkillsExchanged = match.minSkillsExchanged || 0;
+  const totalSkillsExchanged = match.totalSkillsExchanged || 0;
+  
   // Mutation for sending pairing requests
   const sendRequestMutation = useMutation({
     mutationFn: async () => {
@@ -291,7 +309,7 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
       setMessage("");
       toast({
         title: "Request sent",
-        description: `Your pairing request to ${match.user.displayName || match.user.fullname} has been sent.`,
+        description: `Your pairing request to ${displayName} has been sent.`,
       });
     },
     onError: (error: any) => {
@@ -330,8 +348,8 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
           <div className="p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <Avatar className="h-16 w-16 cursor-pointer" onClick={handleViewProfile}>
-                <AvatarImage src={match.user.avatar || ""} alt={match.user.displayName || match.user.fullname} />
-                <AvatarFallback className="text-xl">{getInitials(match.user.displayName || match.user.fullname)}</AvatarFallback>
+                <AvatarImage src={match.user.avatar || ""} alt={displayName} />
+                <AvatarFallback className="text-xl">{getInitials(displayName)}</AvatarFallback>
               </Avatar>
               
               <div className="flex-grow">
@@ -340,21 +358,31 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
                     className="text-xl font-heading font-bold text-deep-indigo dark:text-white cursor-pointer hover:underline"
                     onClick={handleViewProfile}
                   >
-                    {match.user.displayName || match.user.fullname}
+                    {displayName}
                   </h3>
                   
-                  <Badge className="w-fit text-sm bg-amber/20 text-deep-indigo dark:bg-amber/30 dark:text-white">
-                    {match.matchScore > 3 ? "Strong" : match.matchScore > 1 ? "Good" : "Potential"} Match
+                  <Badge className={cn(
+                    "w-fit text-sm",
+                    matchQuality === "Excellent" ? "bg-success/20 text-success dark:bg-success/30 dark:text-success" :
+                    matchQuality === "Strong" ? "bg-amber/20 text-amber-700 dark:bg-amber/30 dark:text-amber-400" :
+                    "bg-royal-purple/10 text-royal-purple dark:bg-royal-purple/20 dark:text-royal-purple"
+                  )}>
+                    {matchQuality} Match
                   </Badge>
                   
-                  {match.matchingTeachSkills.length > 0 && match.matchingLearnSkills.length > 0 ? (
-                    <Badge className="w-fit text-sm bg-success/20 text-success dark:bg-success/30 dark:text-success flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
-                      </svg>
-                      Mutual Benefit
-                    </Badge>
-                  ) : null}
+                  <Badge className="w-fit text-sm bg-success/20 text-success dark:bg-success/30 dark:text-success flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+                    </svg>
+                    Mutual Benefit: {minSkillsExchanged} Skills Each Way
+                  </Badge>
+                  
+                  <Badge className="w-fit text-sm bg-info/20 text-info dark:bg-info/30 dark:text-info flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2v20M2 12h20"></path>
+                    </svg>
+                    {totalSkillsExchanged} Total Skills Exchanged
+                  </Badge>
                 </div>
                 
                 {match.user.bio && (
@@ -368,15 +396,17 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
             <Separator className="my-4" />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* User can teach you */}
-              <div>
-                <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                  Can teach you:
+              {/* User can teach you - Mutual Benefit */}
+              <div className="border border-success/20 rounded-md p-3 bg-success/5">
+                <h4 className="text-sm font-medium text-success flex items-center gap-1 mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+                  </svg>
+                  {displayName} can teach you:
                 </h4>
-                
                 <div className="flex flex-wrap gap-2">
                   {match.matchingLearnSkills.length > 0 ? (
-                    match.matchingLearnSkills.map(skill => (
+                    match.matchingLearnSkills.map((skill: string) => (
                       <SkillTag key={skill} type="learn">{skill}</SkillTag>
                     ))
                   ) : (
@@ -384,16 +414,17 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
                   )}
                 </div>
               </div>
-              
-              {/* You can teach user */}
-              <div>
-                <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                  You can teach:
+              {/* You can teach user - Mutual Benefit */}
+              <div className="border border-success/20 rounded-md p-3 bg-success/5">
+                <h4 className="text-sm font-medium text-success flex items-center gap-1 mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+                  </svg>
+                  You can teach {displayName}:
                 </h4>
-                
                 <div className="flex flex-wrap gap-2">
                   {match.matchingTeachSkills.length > 0 ? (
-                    match.matchingTeachSkills.map(skill => (
+                    match.matchingTeachSkills.map((skill: string) => (
                       <SkillTag key={skill} type="teach">{skill}</SkillTag>
                     ))
                   ) : (
@@ -429,7 +460,7 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
           <DialogHeader>
             <DialogTitle>Send Pairing Request</DialogTitle>
             <DialogDescription>
-              Request to pair with {match.user.displayName || match.user.fullname} for skill exchange.
+              Request to pair with {displayName} for skill exchange.
             </DialogDescription>
           </DialogHeader>
           
@@ -457,7 +488,7 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
                         They can teach you:
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {match.matchingTeachSkills.map(skill => (
+                        {match.matchingTeachSkills.map((skill: string) => (
                           <SkillTag key={skill} type="teach" className="border-2 border-teal animate-pulse-slow">{skill}</SkillTag>
                         ))}
                       </div>
@@ -471,7 +502,7 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
                         You can teach them:
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {match.matchingLearnSkills.map(skill => (
+                        {match.matchingLearnSkills.map((skill: string) => (
                           <SkillTag key={skill} type="learn" className="border-2 border-royal-purple animate-pulse-slow">{skill}</SkillTag>
                         ))}
                       </div>
@@ -482,33 +513,31 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
             </div>
             
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Add a message (optional)</h4>
+              <h4 className="text-sm font-semibold">Message (Optional)</h4>
               <Textarea
-                placeholder={`Hi ${match.user.displayName || match.user.fullname}! I'm interested in exchanging skills with you...`}
+                placeholder="Add a personal message to your request..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                rows={4}
+                className="min-h-[100px]"
               />
             </div>
           </div>
           
-          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsRequestModalOpen(false)}
-            >
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRequestModalOpen(false)}>
               Cancel
             </Button>
-            <Button
-              type="button"
-              onClick={handleSendRequest}
-              disabled={sendRequestMutation.isPending}
-            >
+            <Button onClick={handleSendRequest} disabled={sendRequestMutation.isPending}>
               {sendRequestMutation.isPending ? (
-                <>Sending Request...</>
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
               ) : (
-                <>Send Request</>
+                <>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Send Request
+                </>
               )}
             </Button>
           </DialogFooter>
@@ -521,51 +550,74 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
 // Main Matches page component
 export default function MatchesPage() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("potential");
+  const { user } = useAuth(); // Get current user from auth context
+  const [activeTab, setActiveTab] = useState<string>("potential");
+  const [, setLocation] = useLocation();
   
-  // Fetch suggested matches
+  // Fetch suggested matches with client-side mutual benefit algorithm implementation
   const {
     data: suggestedMatches,
     isLoading: isLoadingSuggested,
     isError: isErrorSuggested,
+    error: matchError,
     refetch: refetchSuggested
   } = useQuery({
-    queryKey: ['/api/matches/suggested'],
+    queryKey: ["/api/matches/suggested"],
     queryFn: getQueryFn<SuggestedMatch[]>({ on401: "throw" })
   });
   
-  // Fetch pairing requests
+  // Fetch incoming pairing requests
   const {
-    data: pairingRequests,
-    isLoading: isLoadingRequests,
-    isError: isErrorRequests,
-    refetch: refetchRequests
-  } = useQuery({
-    queryKey: ['/api/pairing-requests'],
-    queryFn: getQueryFn<PairingRequestWithUsers[]>({ on401: "throw" })
+    data: incomingRequests = [],
+    isLoading: isLoadingIncoming,
+    isError: isErrorIncoming,
+    refetch: refetchIncoming
+  } = useQuery<PairingRequestWithUsers[]>({
+    queryKey: ['/api/pairing-requests?type=received'],
+    queryFn: getQueryFn({ on401: "throw" })
+  });
+
+  // Fetch outgoing pairing requests
+  const {
+    data: outgoingRequests = [],
+    isLoading: isLoadingOutgoing,
+    isError: isErrorOutgoing,
+    refetch: refetchOutgoing
+  } = useQuery<PairingRequestWithUsers[]>({
+    queryKey: ['/api/pairing-requests?type=sent'],
+    queryFn: getQueryFn({ on401: "throw" })
   });
   
-  // Split requests into incoming and outgoing
-  const incomingRequests = pairingRequests?.filter(req => 
-    req.status === "pending" && req.recipient.id !== req.requester.id
-  ) || [];
+  // Check if there are new incoming requests
+  const hasNewIncomingRequests = incomingRequests.length > 0;
   
-  const outgoingRequests = pairingRequests?.filter(req => 
-    req.status === "pending" && req.requester.id !== req.recipient.id
-  ) || [];
-  
-  const acceptedRequests = pairingRequests?.filter(req => 
-    req.status === "accepted"
-  ) || [];
+  // Set up polling for new requests
+  useEffect(() => {
+    // Poll for new requests every 30 seconds
+    const interval = setInterval(() => {
+      if (!isLoadingOutgoing) {
+        refetchOutgoing();
+      }
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [refetchOutgoing, isLoadingOutgoing]);
   
   // Handle data refresh
   const handleRefresh = () => {
     refetchSuggested();
-    refetchRequests();
+    refetchIncoming();
+    refetchOutgoing();
     toast({
       title: "Data refreshed",
       description: "The latest matching data has been loaded.",
     });
+  };
+
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setLocation(`/matches?tab=${value}`, { replace: true });
   };
 
   return (
@@ -596,18 +648,22 @@ export default function MatchesPage() {
           >
             <Users className="h-4 w-4 mr-1" />
             Suggested Matches
-            {suggestedMatches && suggestedMatches.length > 0 && (
+            {Array.isArray(suggestedMatches) && suggestedMatches.length > 0 && (
               <Badge className="ml-2 bg-amber/20 text-deep-indigo dark:text-white">{suggestedMatches.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger 
             value="incoming" 
-            className="flex items-center data-[state=active]:bg-teal data-[state=active]:text-white"
+            className={cn(
+              "flex items-center data-[state=active]:bg-teal data-[state=active]:text-white",
+              hasNewIncomingRequests && activeTab !== "incoming" && "animate-pulse"
+            )}
+            onClick={() => hasNewIncomingRequests && setActiveTab("incoming")}
           >
             <UserPlus className="h-4 w-4 mr-1" />
             Incoming Requests
             {incomingRequests.length > 0 && (
-              <Badge className="ml-2 bg-amber/20 text-deep-indigo dark:text-white">{incomingRequests.length}</Badge>
+              <Badge className="ml-2 bg-success/20 text-success dark:bg-success/30 dark:text-success font-bold">{incomingRequests.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger 
@@ -675,7 +731,7 @@ export default function MatchesPage() {
                 </Button>
               </CardContent>
             </Card>
-          ) : suggestedMatches?.length === 0 ? (
+          ) : (Array.isArray(suggestedMatches) && suggestedMatches.length === 0) ? (
             <Card>
               <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[200px]">
                 <div className="text-gray-400 mb-2">
@@ -687,7 +743,7 @@ export default function MatchesPage() {
                   Try adding more skills to your profile to increase your chances of finding matches.
                 </p>
                 <Button 
-                  onClick={() => navigate('/profile/edit')}
+                  onClick={() => setLocation('/profile/edit')}
                   variant="outline"
                 >
                   Update Skills
@@ -704,52 +760,48 @@ export default function MatchesPage() {
                     <path d="M15 8V2"/>
                     <path d="M12 8a4 4 0 0 0-4 4v2a4 4 0 0 0 8 0v-2a4 4 0 0 0-4-4Z"/>
                   </svg>
-                  <h3 className="text-lg font-semibold text-deep-indigo dark:text-white">Mutual Benefit Matches</h3>
+                  <h3 className="text-lg font-semibold text-deep-indigo dark:text-white">True Mutual Benefit Matches</h3>
                 </div>
                 <p className="text-sm text-charcoal dark:text-gray-300">
-                  These matches have skills that complement yours, creating a mutual learning opportunity. 
-                  Each match can teach you skills you want to learn, and you can teach them skills they want to learn.
+                  Our matching algorithm finds users where <span className="font-semibold">both of you benefit equally</span>. 
+                  Every match shown here guarantees that each person can teach and learn at least one skill from the other.
                 </p>
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                  <div className="bg-success/10 rounded-md p-2 border border-success/20">
+                    <span className="font-semibold text-success">Excellent Match:</span> 3+ skills exchanged each way
+                  </div>
+                  <div className="bg-amber/10 rounded-md p-2 border border-amber/20">
+                    <span className="font-semibold text-amber-700 dark:text-amber-400">Strong Match:</span> 2 skills exchanged each way
+                  </div>
+                  <div className="bg-royal-purple/10 rounded-md p-2 border border-royal-purple/20">
+                    <span className="font-semibold text-royal-purple">Good Match:</span> At least 1 skill exchanged each way
+                  </div>
+                </div>
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {suggestedMatches.map(match => (
-                  <UserMatchCard key={match.user.id} match={match} />
-                ))}
+                {Array.isArray(suggestedMatches) && suggestedMatches.length > 0 ? (
+                  suggestedMatches.map((match: SuggestedMatch) => (
+                    <UserMatchCard key={match.user.id} match={match} />
+                  ))
+                ) : (
+                  <div className="col-span-2 text-center py-8">
+                    <p className="text-muted-foreground">No matches found. Try adding more skills to your profile!</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </TabsContent>
         
         <TabsContent value="incoming" className="mt-6">
-          {isLoadingRequests ? (
+          {isLoadingIncoming ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {[...Array(2)].map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between">
-                      <div className="flex gap-4">
-                        <Skeleton className="h-12 w-12 rounded-full" />
-                        <div>
-                          <Skeleton className="h-5 w-36 mb-1" />
-                          <Skeleton className="h-4 w-24" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-6 w-16" />
-                    </div>
-                    <div className="mt-4 space-y-3">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-16 w-full" />
-                    </div>
-                    <div className="mt-4 flex space-x-2">
-                      <Skeleton className="h-10 w-full" />
-                      <Skeleton className="h-10 w-full" />
-                    </div>
-                  </CardContent>
-                </Card>
+                <Card key={i}><CardContent className="p-6"><div className="flex items-center gap-4"><Skeleton className="h-12 w-12 rounded-full" /><div><Skeleton className="h-6 w-32 mb-2" /><Skeleton className="h-4 w-20" /></div></div><Skeleton className="h-px w-full my-4" /><Skeleton className="h-8 w-32" /></CardContent></Card>
               ))}
             </div>
-          ) : isErrorRequests ? (
+          ) : isErrorIncoming ? (
             <Card>
               <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[200px]">
                 <div className="text-red-500 mb-2">
@@ -759,7 +811,7 @@ export default function MatchesPage() {
                 <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
                   There was an error loading your pairing requests. Please try again.
                 </p>
-                <Button onClick={handleRefresh}>
+                <Button onClick={() => refetchIncoming()}>
                   Try Again
                 </Button>
               </CardContent>
@@ -768,58 +820,36 @@ export default function MatchesPage() {
             <Card>
               <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[200px]">
                 <div className="text-gray-400 mb-2">
-                  <ArrowRight className="h-10 w-10" />
+                  <UserPlus className="h-10 w-10" />
                 </div>
                 <h3 className="text-xl font-medium mb-2">No incoming requests</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
-                  You don't have any incoming pairing requests at the moment.
-                  Check back later or explore potential matches.
+                  You have no incoming pairing requests at the moment.
                 </p>
-                <Button 
-                  onClick={() => setActiveTab("potential")}
-                  variant="outline"
-                >
-                  Find Matches
-                </Button>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {incomingRequests.map(request => (
-                <RequestCard key={request.id} request={request} type="incoming" onUpdate={refetchRequests} />
+                <RequestCard 
+                  key={request.id} 
+                  request={request} 
+                  type="incoming" 
+                  onUpdate={refetchIncoming} 
+                />
               ))}
             </div>
           )}
         </TabsContent>
         
         <TabsContent value="outgoing" className="mt-6">
-          {isLoadingRequests ? (
+          {isLoadingOutgoing ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {[...Array(2)].map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between">
-                      <div className="flex gap-4">
-                        <Skeleton className="h-12 w-12 rounded-full" />
-                        <div>
-                          <Skeleton className="h-5 w-36 mb-1" />
-                          <Skeleton className="h-4 w-24" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-6 w-16" />
-                    </div>
-                    <div className="mt-4 space-y-3">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-16 w-full" />
-                    </div>
-                    <div className="mt-4">
-                      <Skeleton className="h-10 w-full" />
-                    </div>
-                  </CardContent>
-                </Card>
+                <Card key={i}><CardContent className="p-6"><div className="flex items-center gap-4"><Skeleton className="h-12 w-12 rounded-full" /><div><Skeleton className="h-6 w-32 mb-2" /><Skeleton className="h-4 w-20" /></div></div><Skeleton className="h-px w-full my-4" /><Skeleton className="h-8 w-32" /></CardContent></Card>
               ))}
             </div>
-          ) : isErrorRequests ? (
+          ) : isErrorOutgoing ? (
             <Card>
               <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[200px]">
                 <div className="text-red-500 mb-2">
@@ -829,53 +859,28 @@ export default function MatchesPage() {
                 <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
                   There was an error loading your pairing requests. Please try again.
                 </p>
-                <Button onClick={handleRefresh}>
+                <Button onClick={() => refetchOutgoing()}>
                   Try Again
                 </Button>
               </CardContent>
             </Card>
-          ) : outgoingRequests.length === 0 && acceptedRequests.length === 0 ? (
+          ) : outgoingRequests.length === 0 ? (
             <Card>
               <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[200px]">
                 <div className="text-gray-400 mb-2">
-                  <ArrowRight className="h-10 w-10 rotate-180" />
+                  <ArrowRight className="h-10 w-10" />
                 </div>
                 <h3 className="text-xl font-medium mb-2">No outgoing requests</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
-                  You haven't sent any pairing requests yet.
-                  Explore potential matches to find learning partners.
+                  You have no outgoing pairing requests at the moment.
                 </p>
-                <Button 
-                  onClick={() => setActiveTab("potential")}
-                  variant="outline"
-                >
-                  Find Matches
-                </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-8">
-              {outgoingRequests.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Pending Requests</h3>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {outgoingRequests.map(request => (
-                      <RequestCard key={request.id} request={request} type="outgoing" onUpdate={refetchRequests} />
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {acceptedRequests.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Accepted Connections</h3>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {acceptedRequests.map(request => (
-                      <RequestCard key={request.id} request={request} type="outgoing" onUpdate={refetchRequests} />
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {outgoingRequests.map(request => (
+                <RequestCard key={request.id} request={request} type="outgoing" onUpdate={refetchOutgoing} />
+              ))}
             </div>
           )}
         </TabsContent>
