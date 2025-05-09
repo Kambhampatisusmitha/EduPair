@@ -7,22 +7,22 @@ import MemoryStore from "memorystore";
 
 const app = express();
 
-// CORS setup for frontend on localhost:5173
+// CORS setup (Adjust origin for production)
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: process.env.CORS_ORIGIN || "*",
   credentials: true,
 }));
 
 // Session setup
 const MemoryStoreSession = MemoryStore(session);
 app.use(session({
-  secret: "your-secret-key", // Change this in production
+  secret: process.env.SESSION_SECRET || "your-secret-key", // Use env secret for security
   resave: false,
   saveUninitialized: false,
   store: new MemoryStoreSession({ checkPeriod: 86400000 }),
   cookie: {
-    secure: false, // true if using HTTPS
-    sameSite: "lax", // or 'none' if using HTTPS and cross-origin
+    secure: process.env.NODE_ENV === "production", // Secure cookie in production
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 1000 * 60 * 60 * 24, // 1 day
   },
 }));
@@ -44,7 +44,7 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      let logLine = ${req.method} ${path} ${res.statusCode} in ${duration}ms;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
@@ -68,22 +68,17 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  server.listen(5000, 'localhost', () => {
-    console.log('Server is running on http://localhost:5000');
+  // Dynamic port and 0.0.0.0 for external access
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(Server is running on http://0.0.0.0:${PORT});
   });
 })();
