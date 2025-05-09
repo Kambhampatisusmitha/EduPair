@@ -389,6 +389,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === Analytics Routes ===
+  app.get("/api/analytics", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      console.log("[ANALYTICS] Endpoint called: /api/analytics");
+      const userId = req.session!.userId!;
+      
+      // Get current user to ensure we have their skills
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get all users to analyze skill trends
+      const allUsers = await storage.getUsers({
+        currentUserId: userId,
+        limit: 1000,
+        offset: 0
+      });
+      
+      console.log(`[ANALYTICS] Found ${allUsers.length} users for skill trend analysis`);
+      
+      // Get all pairing requests (both sent and received)
+      const sentRequests = await storage.getPairingRequests({
+        requesterId: userId
+      });
+      
+      const receivedRequests = await storage.getPairingRequests({
+        recipientId: userId
+      });
+      
+      console.log(`[ANALYTICS] Found ${sentRequests.length} sent requests and ${receivedRequests.length} received requests`);
+      
+      // Calculate top skills across the platform
+      const learnSkillsCount: Record<string, number> = {};
+      const teachSkillsCount: Record<string, number> = {};
+      
+      // Count occurrences of each skill
+      allUsers.forEach(user => {
+        if (Array.isArray(user.learnSkills)) {
+          user.learnSkills.forEach(skill => {
+            if (skill && typeof skill === 'string') {
+              learnSkillsCount[skill] = (learnSkillsCount[skill] || 0) + 1;
+            }
+          });
+        }
+        
+        if (Array.isArray(user.teachSkills)) {
+          user.teachSkills.forEach(skill => {
+            if (skill && typeof skill === 'string') {
+              teachSkillsCount[skill] = (teachSkillsCount[skill] || 0) + 1;
+            }
+          });
+        }
+      });
+      
+      // Convert to arrays and sort by count (descending)
+      const topLearnSkills = Object.entries(learnSkillsCount)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      
+      const topTeachSkills = Object.entries(teachSkillsCount)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      
+      console.log(`[ANALYTICS] Top learn skills: ${topLearnSkills.map(s => s.name).join(', ')}`);
+      console.log(`[ANALYTICS] Top teach skills: ${topTeachSkills.map(s => s.name).join(', ')}`);
+      
+      // Calculate user's pairing stats
+      const acceptedRequests = sentRequests.filter(req => req.status === "accepted");
+      const declinedRequests = sentRequests.filter(req => req.status === "declined");
+      const pendingRequests = sentRequests.filter(req => req.status === "pending");
+      
+      console.log(`[ANALYTICS] Request stats - Accepted: ${acceptedRequests.length}, Declined: ${declinedRequests.length}, Pending: ${pendingRequests.length}`);
+      
+      // Find most matched skill by analyzing both sent and received accepted requests
+      const skillMatches: Record<string, number> = {};
+      
+      // Count skills in accepted sent requests
+      acceptedRequests.forEach(req => {
+        if (Array.isArray(req.skills)) {
+          req.skills.forEach(skill => {
+            if (skill && typeof skill === 'string') {
+              skillMatches[skill] = (skillMatches[skill] || 0) + 1;
+            }
+          });
+        }
+      });
+      
+      // Count skills in accepted received requests
+      const acceptedReceivedRequests = receivedRequests.filter(req => req.status === "accepted");
+      acceptedReceivedRequests.forEach(req => {
+        if (Array.isArray(req.skills)) {
+          req.skills.forEach(skill => {
+            if (skill && typeof skill === 'string') {
+              skillMatches[skill] = (skillMatches[skill] || 0) + 1;
+            }
+          });
+        }
+      });
+      
+      // Find the skill with the highest count
+      let mostMatchedSkill = "None";
+      let highestCount = 0;
+      
+      Object.entries(skillMatches).forEach(([skill, count]) => {
+        if (count > highestCount) {
+          mostMatchedSkill = skill;
+          highestCount = count;
+        }
+      });
+      
+      console.log(`[ANALYTICS] Most matched skill: ${mostMatchedSkill} (count: ${highestCount})`);
+      
+      // Prepare response
+      const analyticsData = {
+        topLearnSkills,
+        topTeachSkills,
+        userPairingStats: {
+          sent: sentRequests.length,
+          accepted: acceptedRequests.length,
+          declined: declinedRequests.length,
+          pending: pendingRequests.length,
+          mostMatchedSkill
+        }
+      };
+      
+      console.log("[ANALYTICS] Sending response:", {
+        topLearnSkillsCount: topLearnSkills.length,
+        topTeachSkillsCount: topTeachSkills.length,
+        userStats: analyticsData.userPairingStats
+      });
+      
+      return res.status(200).json(analyticsData);
+    } catch (error) {
+      console.error("[ANALYTICS] Error:", error);
+      return res.status(500).json({ message: "Failed to fetch analytics data" });
+    }
+  });
+  
   // === Matches Routes ===
   // Simple test endpoint to check API accessibility
   app.get("/api/matches/test", async (req: Request, res: Response) => {
@@ -673,31 +814,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session!.userId!;
       const { status, scheduledDate, duration, location, notes } = req.body;
       
+      console.log(`[SESSION UPDATE] Request to update session ${sessionId} by user ${userId}:`, req.body);
+      
       // Get the session
       const session = await storage.getSession(sessionId);
       if (!session) {
+        console.log(`[SESSION UPDATE] Session ${sessionId} not found`);
         return res.status(404).json({ message: "Session not found" });
       }
       
       // Check if user is part of the session
       const isParticipant = await storage.isSessionParticipant(sessionId, userId);
       if (!isParticipant) {
+        console.log(`[SESSION UPDATE] User ${userId} not authorized to update session ${sessionId}`);
         return res.status(403).json({ message: "Not authorized to update this session" });
       }
       
-      // Update the session
-      const updatedSession = await storage.updateSession(sessionId, {
-        status,
-        scheduledDate,
-        duration,
-        location,
-        notes
-      });
+      // Prepare update data with only the fields that are provided
+      const updateData: Partial<LearningSession> = {};
       
+      if (status !== undefined) updateData.status = status;
+      if (scheduledDate !== undefined) updateData.scheduledDate = scheduledDate;
+      if (duration !== undefined) updateData.duration = duration;
+      if (location !== undefined) updateData.location = location;
+      if (notes !== undefined) updateData.notes = notes;
+      
+      console.log(`[SESSION UPDATE] Updating session ${sessionId} with data:`, updateData);
+      
+      // Update the session
+      const updatedSession = await storage.updateSession(sessionId, updateData);
+      
+      console.log(`[SESSION UPDATE] Session ${sessionId} updated successfully:`, updatedSession);
       res.status(200).json(updatedSession);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Failed to update session" });
+      console.error(`[SESSION UPDATE] Error updating session:`, error);
+      res.status(500).json({ message: "Failed to update session", error: (error as Error).message });
     }
   });
 

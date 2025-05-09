@@ -39,7 +39,9 @@ export default function LoginForm() {
   const onSubmit = async (values: LoginValues) => {
     setIsLoading(true);
     try {
+      console.log('Login form submitted with email:', values.email);
       await login(values.email, values.password);
+      console.log('Login successful');
       toast({
         title: "Logged In",
         description: "You have been logged in successfully!",
@@ -48,9 +50,26 @@ export default function LoginForm() {
       closeLoginModal();
       navigate("/dashboard");
     } catch (error) {
+      console.error('Login form error:', error);
+      let errorMessage = "Invalid email or password";
+      
+      if (error instanceof Error) {
+        // Extract the message from the error
+        errorMessage = error.message;
+        
+        // Check for specific error patterns
+        if (error.message.includes("response.json is not a function")) {
+          errorMessage = "Server error. Please try again.";
+        } else if (error.message.includes("401")) {
+          errorMessage = "Invalid email or password. Please try again.";
+        } else if (error.message.includes("500")) {
+          errorMessage = "Server error. Please try again later.";
+        }
+      }
+      
       toast({
         title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid email or password",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

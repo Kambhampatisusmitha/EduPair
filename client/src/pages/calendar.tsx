@@ -9,9 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getQueryFn } from "@/lib/queryClient";
 import { format, parse, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isEqual, isSameMonth, isSameDay, addMonths, subMonths, parseISO, addHours, isBefore } from "date-fns";
-import { ChevronLeft, ChevronRight, Calendar, Clock, MapPin, Video, MoreHorizontal, Plus, AlertTriangle, CalendarDays, Calendar as CalendarIcon, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, Clock, MapPin, Video, MoreHorizontal, Plus, AlertTriangle, CalendarDays, Calendar as CalendarIcon, Users, CalendarRange, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LearningSession } from "@/types/matching";
 import SkillTag from "@/components/ui/skill-tag";
@@ -624,46 +625,46 @@ const SessionDetailModal = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-center text-xl font-semibold text-primary dark:text-white">
+      <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden">
+        <DialogHeader className="bg-primary/5 dark:bg-primary/10 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+          <DialogTitle className="text-center text-lg font-semibold text-primary dark:text-white">
             {isPast ? "Session Details" : "Upcoming Session"}
           </DialogTitle>
-          <DialogDescription className="text-center">
-            {isPast ? "Details of your past learning session" : "Details of your upcoming learning session"}
+          <DialogDescription className="text-center text-sm">
+            Details of your {isPast ? "past" : "upcoming"} learning session
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-5 py-2">
-          {/* Session with who */}
-          <div className="flex flex-col items-center gap-3 my-4">
+        <div className="px-4 py-3 space-y-4">
+          {/* User profile section */}
+          <div className="flex items-center gap-4 pb-2">
             <div className="relative">
-              <Avatar className="h-20 w-20 border-2 border-primary/20 dark:border-primary/30 shadow-md">
+              <Avatar className="h-16 w-16 border-2 border-primary/20 dark:border-primary/30 shadow-sm">
                 <AvatarImage src={otherUser?.avatar || ""} />
-                <AvatarFallback className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-white text-xl font-semibold">
+                <AvatarFallback className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-white text-lg font-semibold">
                   {getInitials(otherUser?.fullname)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-2 -right-2 bg-white dark:bg-card p-1 rounded-full shadow-sm border border-gray-100 dark:border-gray-800">
+              <div className="absolute -bottom-1 -right-1 bg-white dark:bg-card p-0.5 rounded-full shadow-sm border border-gray-100 dark:border-gray-800">
                 <div className={cn(
-                  "h-6 w-6 rounded-full flex items-center justify-center",
+                  "h-5 w-5 rounded-full flex items-center justify-center",
                   session.status === "scheduled" 
                     ? "bg-[#547792] text-white" 
                     : "bg-[#94B4C1] text-white"
                 )}>
                   {session.status === "scheduled" ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8c-1.5 2.5-.5 5.5 2 8.5s6 5.5 8.5 4c2.5-1.5 3.5-4.5 1.5-8-2-3.5-5.5-6.5-8.5-5C5.5 9 5 11 5 14c0 3 1 6 4.5 7.5 3.5 1.5 7.5-.5 9.5-3"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8c-1.5 2.5-.5 5.5 2 8.5s6 5.5 8.5 4c2.5-1.5 3.5-4.5 1.5-8-2-3.5-5.5-6.5-8.5-5C5.5 9 5 11 5 14c0 3 1 6 4.5 7.5 3.5 1.5 7.5-.5 9.5-3"/></svg>
                   )}
                 </div>
               </div>
             </div>
             
-            <div className="text-center">
-              <h3 className="font-semibold text-xl text-gray-800 dark:text-gray-100">{otherUser?.fullname}</h3>
+            <div>
+              <h3 className="font-semibold text-base text-gray-800 dark:text-gray-100">{otherUser?.fullname}</h3>
               <Badge className={cn(
-                "mt-1 px-3 py-1",
+                "mt-1 px-2 py-0.5 text-xs",
                 session.status === "scheduled" 
                   ? "bg-[#547792]/20 text-[#547792] border-[#547792]/30 dark:bg-[#547792]/30 dark:text-white dark:border-[#547792]/50"
                   : "bg-[#94B4C1]/20 text-[#94B4C1] border-[#94B4C1]/30 dark:bg-[#94B4C1]/30 dark:text-white dark:border-[#94B4C1]/50"
@@ -674,17 +675,18 @@ const SessionDetailModal = ({
           </div>
           
           {/* Session details */}
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-5 space-y-5 border border-gray-100 dark:border-gray-700 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-primary/10 dark:bg-primary/20 rounded-lg flex-shrink-0">
-                <Calendar className="h-5 w-5 text-primary dark:text-white" />
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-3 border border-gray-100 dark:border-gray-700 text-sm">
+            {/* Date & Time */}
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-primary/10 dark:bg-primary/20 rounded-md flex-shrink-0">
+                <Calendar className="h-4 w-4 text-primary dark:text-white" />
               </div>
               <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">Date & Time</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                <div className="font-medium text-gray-900 dark:text-gray-100 text-xs">Date & Time</div>
+                <div className="text-gray-600 dark:text-gray-300">
                   {format(sessionDate, "EEEE, MMMM d, yyyy")}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 flex items-center mt-0.5">
+                <div className="text-gray-600 dark:text-gray-300 flex items-center">
                   <span className="font-medium">{format(sessionDate, "h:mm a")}</span>
                   <span className="mx-1.5">•</span>
                   <span>{session.duration} minutes</span>
@@ -692,44 +694,37 @@ const SessionDetailModal = ({
               </div>
             </div>
             
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-primary/10 dark:bg-primary/20 rounded-lg flex-shrink-0">
+            {/* Location */}
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-primary/10 dark:bg-primary/20 rounded-md flex-shrink-0">
                 {session.location === "online" ? (
-                  <Video className="h-5 w-5 text-primary dark:text-white" />
+                  <Video className="h-4 w-4 text-primary dark:text-white" />
                 ) : (
-                  <MapPin className="h-5 w-5 text-primary dark:text-white" />
+                  <MapPin className="h-4 w-4 text-primary dark:text-white" />
                 )}
               </div>
               <div>
-                <div className="font-medium text-gray-900 dark:text-gray-100">Location</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                  {session.location === "online" ? (
-                    <>
-                      <div className="font-medium mb-0.5">Online Session</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        A meeting link will be shared before the session starts
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="font-medium mb-0.5">In-Person Meeting</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Location details will be shared privately
-                      </div>
-                    </>
-                  )}
+                <div className="font-medium text-gray-900 dark:text-gray-100 text-xs">Location</div>
+                <div className="text-gray-600 dark:text-gray-300">
+                  {session.location === "online" ? "Online Session" : "In-Person Meeting"}
                 </div>
+                {session.location === "online" && (
+                  <div className="text-gray-500 dark:text-gray-400 text-xs italic">
+                    A meeting link will be shared before the session starts.
+                  </div>
+                )}
               </div>
             </div>
             
+            {/* Notes (if any) */}
             {session.notes && (
-              <div className="flex items-start gap-4">
-                <div className="p-2 bg-amber-100 dark:bg-amber-950/30 rounded-lg flex-shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-primary/10 dark:bg-primary/20 rounded-md flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary dark:text-white"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 9h1"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
                 </div>
                 <div>
-                  <div className="font-medium text-gray-900 dark:text-gray-100">Session Notes</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-line">
+                  <div className="font-medium text-gray-900 dark:text-gray-100 text-xs">Session Notes</div>
+                  <div className="text-gray-600 dark:text-gray-300">
                     {session.notes}
                   </div>
                 </div>
@@ -738,28 +733,28 @@ const SessionDetailModal = ({
           </div>
           
           {/* Skills being exchanged */}
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Skills Being Exchanged</h4>
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-100 dark:border-gray-700">
+            <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">Skills Being Exchanged</h4>
             
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-2 text-sm">
+              <div className="flex items-center gap-2">
                 <div className={cn(
-                  "h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0",
+                  "h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0",
                   session.status === "scheduled" 
                     ? "bg-[#547792] text-white" 
                     : "bg-[#94B4C1] text-white"
                 )}>
                   {session.status === "scheduled" ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5V3"></path><path d="M14 5V3"></path><path d="M12 22v-1"></path><circle cx="9" cy="9" r="7"></circle><path d="m21.95 13.5-.975-.7A9.97 9.97 0 0 0 22 8c0-2.386-.834-4.58-2.227-6.3"></path><path d="M19 16.5h.028a9.93 9.93 0 0 0 3.4-1.2"></path><path d="m3.5 11-.975.7a9.97 9.97 0 0 0 1.05 4.8"></path><path d="M5 16.5H4.972a9.93 9.93 0 0 0 7.6 4.4"></path></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5V3"></path><path d="M14 5V3"></path><path d="M12 22v-1"></path><circle cx="9" cy="9" r="7"></circle><path d="m21.95 13.5-.975-.7A9.97 9.97 0 0 0 22 8c0-2.386-.834-4.58-2.227-6.3"></path><path d="M19 16.5h.028a9.93 9.93 0 0 0 3.4-1.2"></path><path d="m3.5 11-.975.7a9.97 9.97 0 0 0 1.05 4.8"></path><path d="M5 16.5H4.972a9.93 9.93 0 0 0 7.6 4.4"></path></svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-5"></path><path d="M9 8V5c0-1.1.9-2 2-2h2a2 2 0 0 1 2 2v3"></path><path d="M15 9h.01"></path><path d="M9 9h.01"></path><path d="M12 12a3 3 0 0 0-2 5.2V20h4v-2.8A3 3 0 0 0 12 12Z"></path></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-5"></path><path d="M9 8V5c0-1.1.9-2 2-2h2a2 2 0 0 1 2 2v3"></path><path d="M15 9h.01"></path><path d="M9 9h.01"></path><path d="M12 12a3 3 0 0 0-2 5.2V20h4v-2.8A3 3 0 0 0 12 12Z"></path></svg>
                   )}
                 </div>
-                <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex-1">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                     {session.status === "scheduled" ? "You will teach" : "You will learn"}
                   </div>
-                  <div className="font-medium">
+                  <div className="font-medium text-gray-800 dark:text-gray-200">
                     {session.status === "scheduled" ? 
                       session.teachSkills?.join(", ") || "Skills not specified" : 
                       session.learnSkills?.join(", ") || "Skills not specified"}
@@ -767,24 +762,26 @@ const SessionDetailModal = ({
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+              
+              <div className="flex items-center gap-2">
                 <div className={cn(
-                  "h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0",
+                  "h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0",
                   session.status === "scheduled" 
                     ? "bg-[#94B4C1] text-white" 
                     : "bg-[#547792] text-white"
                 )}>
                   {session.status === "scheduled" ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-5"></path><path d="M9 8V5c0-1.1.9-2 2-2h2a2 2 0 0 1 2 2v3"></path><path d="M15 9h.01"></path><path d="M9 9h.01"></path><path d="M12 12a3 3 0 0 0-2 5.2V20h4v-2.8A3 3 0 0 0 12 12Z"></path></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-5"></path><path d="M9 8V5c0-1.1.9-2 2-2h2a2 2 0 0 1 2 2v3"></path><path d="M15 9h.01"></path><path d="M9 9h.01"></path><path d="M12 12a3 3 0 0 0-2 5.2V20h4v-2.8A3 3 0 0 0 12 12Z"></path></svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5V3"></path><path d="M14 5V3"></path><path d="M12 22v-1"></path><circle cx="9" cy="9" r="7"></circle><path d="m21.95 13.5-.975-.7A9.97 9.97 0 0 0 22 8c0-2.386-.834-4.58-2.227-6.3"></path><path d="M19 16.5h.028a9.93 9.93 0 0 0 3.4-1.2"></path><path d="m3.5 11-.975.7a9.97 9.97 0 0 0 1.05 4.8"></path><path d="M5 16.5H4.972a9.93 9.93 0 0 0 7.6 4.4"></path></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 5V3"></path><path d="M14 5V3"></path><path d="M12 22v-1"></path><circle cx="9" cy="9" r="7"></circle><path d="m21.95 13.5-.975-.7A9.97 9.97 0 0 0 22 8c0-2.386-.834-4.58-2.227-6.3"></path><path d="M19 16.5h.028a9.93 9.93 0 0 0 3.4-1.2"></path><path d="m3.5 11-.975.7a9.97 9.97 0 0 0 1.05 4.8"></path><path d="M5 16.5H4.972a9.93 9.93 0 0 0 7.6 4.4"></path></svg>
                   )}
                 </div>
-                <div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex-1">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                     {session.status === "scheduled" ? "You will learn" : "You will teach"}
                   </div>
-                  <div className="font-medium">
+                  <div className="font-medium text-gray-800 dark:text-gray-200">
                     {session.status === "scheduled" ? 
                       session.learnSkills?.join(", ") || "Skills not specified" : 
                       session.teachSkills?.join(", ") || "Skills not specified"}
@@ -795,33 +792,49 @@ const SessionDetailModal = ({
           </div>
         </div>
         
-        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 mt-2">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-2 border-t border-gray-100 dark:border-gray-800 pt-3 px-4">
           {isPast ? (
             <>
-              <Button variant="outline" onClick={onClose} className="border-gray-200 dark:border-gray-700">
+              <Button variant="outline" onClick={onClose} className="border-gray-200 dark:border-gray-700 h-9 text-sm">
                 Close
               </Button>
-              <Button className="bg-primary hover:bg-primary/90 text-white">
-                <CalendarDays className="h-4 w-4 mr-2" />
+              <Button className="bg-primary hover:bg-primary/90 text-white h-9 text-sm">
+                <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
                 Schedule New Session
               </Button>
             </>
           ) : (
             <>
-              <Button variant="outline" size="icon" className="sm:hidden w-full flex items-center justify-center gap-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">
-                <MoreHorizontal className="h-4 w-4" />
-                <span>More Options</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild className="sm:hidden">
+                  <Button variant="outline" size="sm" className="w-full flex items-center justify-center gap-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 h-9 text-sm">
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                    <span>Options</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem className="text-red-500 cursor-pointer">
+                    <X className="h-3.5 w-3.5 mr-2" />
+                    Cancel Session
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer">
+                    <CalendarRange className="h-3.5 w-3.5 mr-2" />
+                    Reschedule
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <div className="hidden sm:flex gap-2">
-                <Button variant="outline" className="text-red-500 border-gray-200 dark:border-gray-700">
-                  Cancel Session
+                <Button variant="outline" size="sm" className="text-red-500 border-gray-200 dark:border-gray-700 h-9 text-sm">
+                  <X className="h-3.5 w-3.5 mr-1.5" />
+                  Cancel
                 </Button>
-                <Button variant="outline" className="border-gray-200 dark:border-gray-700">
+                <Button variant="outline" size="sm" className="border-gray-200 dark:border-gray-700 h-9 text-sm">
+                  <CalendarRange className="h-3.5 w-3.5 mr-1.5" />
                   Reschedule
                 </Button>
               </div>
-              <Button className="bg-primary hover:bg-primary/90 text-white">
-                <CalendarDays className="h-4 w-4 mr-2" />
+              <Button size="sm" className="bg-primary hover:bg-primary/90 text-white h-9 text-sm">
+                <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
                 Add to Calendar
               </Button>
             </>
@@ -850,11 +863,11 @@ export default function CalendarPage() {
     queryFn: getQueryFn<LearningSession[]>({ on401: "throw" })
   });
   
-  // Add mock skill data for visualization purposes (in a real app this would come from the API)
+  // Ensure sessions have properly initialized skill arrays
   const sessions = (sessionsRaw || []).map(session => ({
     ...session,
-    teachSkills: session.teachSkills || ["JavaScript", "React", "UI Design"],
-    learnSkills: session.learnSkills || ["Python", "Data Analysis", "UX Research"]
+    teachSkills: session.teachSkills || [],
+    learnSkills: session.learnSkills || []
   }));
   
   // Handle session click

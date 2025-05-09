@@ -12,11 +12,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, RefreshCw, AlertTriangle, UserPlus, Check, X, Users } from "lucide-react";
+import { ArrowRight, RefreshCw, AlertTriangle, UserPlus, Check, X, Users, Calendar, Clock, Video, MapPin, Inbox, SendHorizontal } from "lucide-react";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
-import { SuggestedMatch, PairingRequestWithUsers } from "@/types/matching";
+import { SuggestedMatch, PairingRequestWithUsers, LearningSession } from "@/types/matching";
 import SkillTag from "@/components/ui/skill-tag";
 import { cn } from "@/lib/utils";
+import { format, isAfter, parseISO, addDays } from "date-fns";
+import { LoginHelper } from "@/components/auth/login-helper";
 
 // Request card component for displaying incoming and outgoing pairing requests
 const RequestCard = ({ request, type, onUpdate }: { 
@@ -268,10 +270,111 @@ const RequestCard = ({ request, type, onUpdate }: {
   );
 };
 
+// Confirmed session card component
+const ConfirmedSessionCard = ({ session, onViewDetails }: { 
+  session: LearningSession; 
+  onViewDetails: () => void;
+}) => {
+  const [, setLocation] = useLocation();
+  
+  // Get the other participant (not the current user)
+  const getOtherParticipant = (session: LearningSession) => {
+    // Get current user from any session's participants (assuming we're always a participant)
+    const currentUserId = session.participants[0]?.userId;
+    return session.participants.find(p => p.userId !== currentUserId)?.user;
+  };
+  
+  // Get display name for a user
+  const getDisplayName = (user: any) => {
+    return user?.displayName || user?.fullname || "User";
+  };
+  
+  // Get initials for avatar fallback
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+  
+  // Format time for session display
+  const formatSessionTime = (dateString: string) => {
+    const date = parseISO(dateString);
+    const formattedDate = format(date, "EEEE, MMMM d, yyyy");
+    const formattedTime = format(date, "h:mm a");
+    
+    return `${formattedDate} at ${formattedTime}`;
+  };
+  
+  const otherUser = getOtherParticipant(session);
+  const sessionTime = formatSessionTime(session.scheduledDate);
+  const isPast = !isAfter(parseISO(session.scheduledDate), new Date());
+  
+  return (
+    <Card className="hover:shadow-md transition-shadow duration-200">
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={otherUser?.avatar || ""} alt={getDisplayName(otherUser)} />
+              <AvatarFallback>{getInitials(getDisplayName(otherUser))}</AvatarFallback>
+            </Avatar>
+            <div className="ml-4">
+              <h3 className="font-medium text-lg text-primary dark:text-white">
+                {getDisplayName(otherUser)}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {sessionTime}
+              </p>
+            </div>
+          </div>
+          
+          <Badge className={cn(
+            "text-sm",
+            isPast ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" :
+            "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+          )}>
+            {isPast ? "Completed" : "Scheduled"}
+          </Badge>
+        </div>
+        
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+            <Clock className="h-4 w-4 mr-2" />
+            <span>{session.duration} minutes</span>
+          </div>
+          
+          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+            {session.location === "online" ? (
+              <Video className="h-4 w-4 mr-2" />
+            ) : (
+              <MapPin className="h-4 w-4 mr-2" />
+            )}
+            <span>{session.location === "online" ? "Online Session" : "In-Person Meeting"}</span>
+          </div>
+        </div>
+        
+        <div className="mt-4 flex space-x-2">
+          <Button 
+            variant="outline" 
+            className="flex-1"
+            onClick={() => setLocation('/sessions')}
+          >
+            <Calendar className="h-4 w-4 mr-1" />
+            View Details
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 // Potential match card component for displaying suggested user matches
 const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -551,7 +654,7 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
 export default function MatchesPage() {
   const { toast } = useToast();
   const { user } = useAuth(); // Get current user from auth context
-  const [activeTab, setActiveTab] = useState<string>("potential");
+  const [activeTab, setActiveTab] = useState<string>("suggested");
   const [, setLocation] = useLocation();
   
   // Fetch suggested matches with client-side mutual benefit algorithm implementation
@@ -559,37 +662,104 @@ export default function MatchesPage() {
     data: suggestedMatches,
     isLoading: isLoadingSuggested,
     isError: isErrorSuggested,
-    error: matchError,
     refetch: refetchSuggested
   } = useQuery({
-    queryKey: ["/api/matches/suggested"],
-    queryFn: getQueryFn<SuggestedMatch[]>({ on401: "throw" })
+    queryKey: ['/api/matches/suggested'],
+    queryFn: getQueryFn<SuggestedMatch[]>({ on401: "returnNull" }),
+    enabled: !!user, // Only run query when user is authenticated
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 60000 // 1 minute
   });
   
   // Fetch incoming pairing requests
   const {
-    data: incomingRequests = [],
+    data: incomingRequests,
     isLoading: isLoadingIncoming,
     isError: isErrorIncoming,
     refetch: refetchIncoming
-  } = useQuery<PairingRequestWithUsers[]>({
-    queryKey: ['/api/pairing-requests?type=received'],
-    queryFn: getQueryFn({ on401: "throw" })
+  } = useQuery({
+    queryKey: ['/api/pairing-requests', 'received', 'pending'],
+    queryFn: async ({ queryKey }) => {
+      const [baseUrl, type, status] = queryKey as [string, string, string];
+      const queryParams = new URLSearchParams();
+      if (type) queryParams.append('type', type);
+      if (status) queryParams.append('status', status);
+      const fullUrl = `${baseUrl}?${queryParams.toString()}`;
+      return getQueryFn<PairingRequestWithUsers[]>({ on401: "returnNull" })({ queryKey: [fullUrl] } as any);
+    },
+    enabled: !!user, // Only run query when user is authenticated
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 60000 // 1 minute
   });
 
   // Fetch outgoing pairing requests
   const {
-    data: outgoingRequests = [],
+    data: outgoingRequests,
     isLoading: isLoadingOutgoing,
     isError: isErrorOutgoing,
     refetch: refetchOutgoing
-  } = useQuery<PairingRequestWithUsers[]>({
-    queryKey: ['/api/pairing-requests?type=sent'],
-    queryFn: getQueryFn({ on401: "throw" })
+  } = useQuery({
+    queryKey: ['/api/pairing-requests', 'sent', 'pending'],
+    queryFn: async ({ queryKey }) => {
+      const [baseUrl, type, status] = queryKey as [string, string, string];
+      const queryParams = new URLSearchParams();
+      if (type) queryParams.append('type', type);
+      if (status) queryParams.append('status', status);
+      const fullUrl = `${baseUrl}?${queryParams.toString()}`;
+      return getQueryFn<PairingRequestWithUsers[]>({ on401: "returnNull" })({ queryKey: [fullUrl] } as any);
+    },
+    enabled: !!user, // Only run query when user is authenticated
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 60000 // 1 minute
   });
   
+  // Fetch confirmed sessions
+  const {
+    data: sessions,
+    isLoading: isLoadingSessions,
+    isError: isErrorSessions,
+    refetch: refetchSessions
+  } = useQuery({
+    queryKey: ['/api/sessions'],
+    queryFn: getQueryFn<LearningSession[]>({ on401: "returnNull" }),
+    enabled: !!user, // Only run query when user is authenticated
+    retry: 3,
+    retryDelay: 1000,
+    staleTime: 60000 // 1 minute
+  });
+  
+  // Ensure we have valid data or empty arrays for all data types
+  const safeIncomingRequests = Array.isArray(incomingRequests) ? incomingRequests : [];
+  const safeOutgoingRequests = Array.isArray(outgoingRequests) ? outgoingRequests : [];
+  const safeSessions = Array.isArray(sessions) ? sessions : [];
+  
+  // Filter confirmed sessions (only scheduled ones)
+  const confirmedSessions = safeSessions.filter(session => {
+    try {
+      return session.status === "scheduled" && isAfter(parseISO(session.scheduledDate), new Date());
+    } catch (error) {
+      console.error("Error filtering session:", error, session);
+      return false;
+    }
+  });
+  
+  // Get the request IDs of confirmed sessions to filter them out from incoming/outgoing requests
+  const confirmedRequestIds = confirmedSessions.map(session => session.requestId);
+  
+  // Filter out requests that already have confirmed sessions
+  const filteredIncomingRequests = safeIncomingRequests.filter(
+    request => !confirmedRequestIds.includes(request.id)
+  );
+  
+  const filteredOutgoingRequests = safeOutgoingRequests.filter(
+    request => !confirmedRequestIds.includes(request.id)
+  );
+  
   // Check if there are new incoming requests
-  const hasNewIncomingRequests = incomingRequests.length > 0;
+  const hasNewIncomingRequests = safeIncomingRequests.length > 0;
   
   // Set up polling for new requests
   useEffect(() => {
@@ -604,14 +774,33 @@ export default function MatchesPage() {
   }, [refetchOutgoing, isLoadingOutgoing]);
   
   // Handle data refresh
-  const handleRefresh = () => {
-    refetchSuggested();
-    refetchIncoming();
-    refetchOutgoing();
-    toast({
-      title: "Data refreshed",
-      description: "The latest matching data has been loaded.",
-    });
+  const handleRefresh = async () => {
+    try {
+      // Force refresh all data
+      if (activeTab === "suggested") {
+        await refetchSuggested();
+      } else if (activeTab === "incoming") {
+        await refetchIncoming();
+      } else if (activeTab === "outgoing") {
+        await refetchOutgoing();
+      } else if (activeTab === "confirmed") {
+        await refetchSessions();
+      }
+      
+      toast({
+        title: "Data refreshed",
+        description: "The latest matching data has been loaded.",
+        duration: 3000
+      });
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast({
+        title: "Refresh failed",
+        description: "There was an error refreshing the data. Please try again.",
+        variant: "destructive",
+        duration: 3000
+      });
+    }
   };
 
   // Handle tab change
@@ -628,57 +817,86 @@ export default function MatchesPage() {
           <p className="text-charcoal dark:text-gray-300 mt-1">Discover users with complementary skills and manage pairing requests</p>
         </div>
         <div className="mt-4 md:mt-0">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="bg-amber/10 hover:bg-amber/20 text-deep-indigo border-amber flex items-center"
-            onClick={handleRefresh}
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
-          </Button>
+          {user ? (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-amber/10 hover:bg-amber/20 text-deep-indigo border-amber flex items-center"
+              onClick={handleRefresh}
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh
+            </Button>
+          ) : (
+            <LoginHelper />
+          )}
         </div>
       </div>
       
+      {!user ? (
+        <Card className="mb-6">
+          <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[200px]">
+            <div className="text-amber-500 mb-2">
+              <AlertTriangle className="h-10 w-10" />
+            </div>
+            <h3 className="text-xl font-medium mb-2">Authentication Required</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
+              You need to be logged in to view matches and pairing requests.
+              Please use the login button above to authenticate.
+            </p>
+            <LoginHelper />
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8 bg-rich-cream dark:bg-charcoal">
+        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
           <TabsTrigger 
-            value="potential" 
-            className="flex items-center data-[state=active]:bg-royal-purple data-[state=active]:text-white"
+            value="suggested" 
+            className="flex items-center justify-center"
           >
-            <Users className="h-4 w-4 mr-1" />
-            Suggested Matches
-            {Array.isArray(suggestedMatches) && suggestedMatches.length > 0 && (
-              <Badge className="ml-2 bg-amber/20 text-deep-indigo dark:text-white">{suggestedMatches.length}</Badge>
-            )}
+            <Users className="h-4 w-4 mr-2" />
+            Suggested
           </TabsTrigger>
           <TabsTrigger 
             value="incoming" 
-            className={cn(
-              "flex items-center data-[state=active]:bg-teal data-[state=active]:text-white",
-              hasNewIncomingRequests && activeTab !== "incoming" && "animate-pulse"
-            )}
-            onClick={() => hasNewIncomingRequests && setActiveTab("incoming")}
+            className="flex items-center justify-center"
           >
-            <UserPlus className="h-4 w-4 mr-1" />
-            Incoming Requests
-            {incomingRequests.length > 0 && (
-              <Badge className="ml-2 bg-success/20 text-success dark:bg-success/30 dark:text-success font-bold">{incomingRequests.length}</Badge>
+            <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
+            Incoming
+            {filteredIncomingRequests && filteredIncomingRequests.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {filteredIncomingRequests.length}
+              </Badge>
             )}
           </TabsTrigger>
           <TabsTrigger 
             value="outgoing" 
-            className="flex items-center data-[state=active]:bg-amber data-[state=active]:text-deep-indigo"
+            className="flex items-center justify-center"
           >
-            <ArrowRight className="h-4 w-4 mr-1" />
-            Outgoing Requests
-            {outgoingRequests.length > 0 && (
-              <Badge className="ml-2 bg-deep-indigo/20 text-deep-indigo dark:text-white">{outgoingRequests.length}</Badge>
+            <ArrowRight className="h-4 w-4 mr-2" />
+            Outgoing
+            {filteredOutgoingRequests && filteredOutgoingRequests.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {filteredOutgoingRequests.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="confirmed" 
+            className="flex items-center justify-center"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Sessions
+            {confirmedSessions && confirmedSessions.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {confirmedSessions.length}
+              </Badge>
             )}
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="potential" className="mt-6">
+        <TabsContent value="suggested" className="mt-6">
           {isLoadingSuggested ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {[...Array(4)].map((_, i) => (
@@ -786,7 +1004,11 @@ export default function MatchesPage() {
                   ))
                 ) : (
                   <div className="col-span-2 text-center py-8">
-                    <p className="text-muted-foreground">No matches found. Try adding more skills to your profile!</p>
+                    <p className="text-muted-foreground">No matches found. Try refreshing or adding more skills to your profile!</p>
+                    <Button onClick={handleRefresh} className="mt-4">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh Matches
+                    </Button>
                   </div>
                 )}
               </div>
@@ -798,7 +1020,7 @@ export default function MatchesPage() {
           {isLoadingIncoming ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {[...Array(2)].map((_, i) => (
-                <Card key={i}><CardContent className="p-6"><div className="flex items-center gap-4"><Skeleton className="h-12 w-12 rounded-full" /><div><Skeleton className="h-6 w-32 mb-2" /><Skeleton className="h-4 w-20" /></div></div><Skeleton className="h-px w-full my-4" /><Skeleton className="h-8 w-32" /></CardContent></Card>
+                <Card key={i}><CardContent className="p-6"><div className="flex items-center gap-4"><Skeleton className="h-12 w-12 rounded-full" /><div><Skeleton className="h-6 w-32 mb-2" /><Skeleton className="h-4 w-20" /></div></div><Skeleton className="h-px w-full my-4" /><div className="space-y-2"><Skeleton className="h-4 w-32" /><Skeleton className="h-4 w-44" /></div><div className="mt-4 flex gap-2"><Skeleton className="h-9 w-24" /><Skeleton className="h-9 w-24" /></div></CardContent></Card>
               ))}
             </div>
           ) : isErrorIncoming ? (
@@ -809,22 +1031,22 @@ export default function MatchesPage() {
                 </div>
                 <h3 className="text-xl font-medium mb-2">Failed to load requests</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
-                  There was an error loading your pairing requests. Please try again.
+                  There was an error loading your incoming requests. Please try again.
                 </p>
                 <Button onClick={() => refetchIncoming()}>
                   Try Again
                 </Button>
               </CardContent>
             </Card>
-          ) : incomingRequests.length === 0 ? (
+          ) : !incomingRequests || incomingRequests.length === 0 ? (
             <Card>
               <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[200px]">
                 <div className="text-gray-400 mb-2">
-                  <UserPlus className="h-10 w-10" />
+                  <Inbox className="h-10 w-10" />
                 </div>
                 <h3 className="text-xl font-medium mb-2">No incoming requests</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
-                  You have no incoming pairing requests at the moment.
+                  You don't have any incoming pairing requests at the moment.
                 </p>
               </CardContent>
             </Card>
@@ -835,7 +1057,7 @@ export default function MatchesPage() {
                   key={request.id} 
                   request={request} 
                   type="incoming" 
-                  onUpdate={refetchIncoming} 
+                  onUpdate={() => refetchIncoming()}
                 />
               ))}
             </div>
@@ -846,7 +1068,7 @@ export default function MatchesPage() {
           {isLoadingOutgoing ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {[...Array(2)].map((_, i) => (
-                <Card key={i}><CardContent className="p-6"><div className="flex items-center gap-4"><Skeleton className="h-12 w-12 rounded-full" /><div><Skeleton className="h-6 w-32 mb-2" /><Skeleton className="h-4 w-20" /></div></div><Skeleton className="h-px w-full my-4" /><Skeleton className="h-8 w-32" /></CardContent></Card>
+                <Card key={i}><CardContent className="p-6"><div className="flex items-center gap-4"><Skeleton className="h-12 w-12 rounded-full" /><div><Skeleton className="h-6 w-32 mb-2" /><Skeleton className="h-4 w-20" /></div></div><Skeleton className="h-px w-full my-4" /><div className="space-y-2"><Skeleton className="h-4 w-32" /><Skeleton className="h-4 w-44" /></div><div className="mt-4 flex gap-2"><Skeleton className="h-9 w-24" /></div></CardContent></Card>
               ))}
             </div>
           ) : isErrorOutgoing ? (
@@ -857,14 +1079,14 @@ export default function MatchesPage() {
                 </div>
                 <h3 className="text-xl font-medium mb-2">Failed to load requests</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
-                  There was an error loading your pairing requests. Please try again.
+                  There was an error loading your outgoing requests. Please try again.
                 </p>
                 <Button onClick={() => refetchOutgoing()}>
                   Try Again
                 </Button>
               </CardContent>
             </Card>
-          ) : outgoingRequests.length === 0 ? (
+          ) : !outgoingRequests || outgoingRequests.length === 0 ? (
             <Card>
               <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[200px]">
                 <div className="text-gray-400 mb-2">
@@ -872,14 +1094,67 @@ export default function MatchesPage() {
                 </div>
                 <h3 className="text-xl font-medium mb-2">No outgoing requests</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
-                  You have no outgoing pairing requests at the moment.
+                  You don't have any outgoing pairing requests at the moment.
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {outgoingRequests.map(request => (
-                <RequestCard key={request.id} request={request} type="outgoing" onUpdate={refetchOutgoing} />
+                <RequestCard 
+                  key={request.id} 
+                  request={request} 
+                  type="outgoing" 
+                  onUpdate={() => refetchOutgoing()} 
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="confirmed" className="mt-6">
+          {isLoadingSessions ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {[...Array(2)].map((_, i) => (
+                <Card key={i}><CardContent className="p-6"><div className="flex items-center gap-4"><Skeleton className="h-12 w-12 rounded-full" /><div><Skeleton className="h-6 w-32 mb-2" /><Skeleton className="h-4 w-20" /></div></div><Skeleton className="h-px w-full my-4" /><div className="space-y-2"><Skeleton className="h-4 w-32" /><Skeleton className="h-4 w-44" /></div><Skeleton className="h-8 w-full mt-4" /></CardContent></Card>
+              ))}
+            </div>
+          ) : isErrorSessions ? (
+            <Card>
+              <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[200px]">
+                <div className="text-red-500 mb-2">
+                  <AlertTriangle className="h-10 w-10" />
+                </div>
+                <h3 className="text-xl font-medium mb-2">Failed to load sessions</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
+                  There was an error loading your confirmed sessions. Please try again.
+                </p>
+                <Button onClick={() => refetchSessions()}>
+                  Try Again
+                </Button>
+              </CardContent>
+            </Card>
+          ) : confirmedSessions.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6 flex flex-col items-center justify-center min-h-[200px]">
+                <div className="text-gray-400 mb-2">
+                  <Calendar className="h-10 w-10" />
+                </div>
+                <h3 className="text-xl font-medium mb-2">No confirmed sessions</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
+                  You don't have any confirmed learning sessions scheduled.
+                  Accept a pairing request to schedule a session.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {confirmedSessions.map(session => (
+                <ConfirmedSessionCard 
+                  key={session.id} 
+                  session={session} 
+                  onViewDetails={() => setLocation('/sessions')} 
+                />
               ))}
             </div>
           )}

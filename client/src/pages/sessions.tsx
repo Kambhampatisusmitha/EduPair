@@ -67,19 +67,33 @@ export default function SessionsPage() {
   // Mutation for updating a session (reschedule or cancel)
   const updateSessionMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number, data: any }) => {
-      return apiRequest("PATCH", `/api/sessions/${id}`, data);
+      console.log(`Updating session ${id} with data:`, data);
+      try {
+        const result = await apiRequest("PATCH", `/api/sessions/${id}`, data);
+        console.log('Update session response:', result);
+        return result;
+      } catch (error) {
+        console.error('Error updating session:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Session updated successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/sessions'] });
       setIsRescheduleModalOpen(false);
       setIsCancelModalOpen(false);
       setSessionToModify(null);
+      setScheduledDate(undefined);
+      setDuration("60");
+      setLocation("online");
+      setNotes("");
       toast({
         title: "Session updated",
         description: "Your learning session has been updated successfully.",
       });
     },
     onError: (error: any) => {
+      console.error('Session update error details:', error);
       toast({
         title: "Failed to update session",
         description: error.message || "Please try again later.",
@@ -141,17 +155,47 @@ export default function SessionsPage() {
   
   // Submit reschedule request
   const handleReschedule = () => {
-    if (!sessionToModify || !scheduledDate) return;
+    if (!sessionToModify || !scheduledDate) {
+      toast({
+        title: "Missing information",
+        description: "Please select a date for the rescheduled session.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    updateSessionMutation.mutate({
-      id: sessionToModify.id,
-      data: {
-        scheduledDate: scheduledDate.toISOString(),
-        duration: parseInt(duration),
-        location,
-        notes: notes || undefined
+    try {
+      // Ensure the scheduledDate is valid
+      const formattedDate = scheduledDate.toISOString();
+      const durationValue = parseInt(duration);
+      
+      if (isNaN(durationValue)) {
+        throw new Error("Invalid duration value");
       }
-    });
+      
+      // Prepare update data
+      const updateData = {
+        scheduledDate: formattedDate,
+        duration: durationValue,
+        location,
+        notes: notes.trim() || undefined
+      };
+      
+      console.log('Submitting session update with data:', updateData);
+      
+      // Send the update request
+      updateSessionMutation.mutate({
+        id: sessionToModify.id,
+        data: updateData
+      });
+    } catch (error) {
+      console.error('Error preparing session update:', error);
+      toast({
+        title: "Failed to prepare update",
+        description: "There was an error with the session data. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Submit cancel request
@@ -261,7 +305,7 @@ export default function SessionsPage() {
           <h1 className="text-3xl font-heading font-bold text-primary dark:text-white">Learning Sessions</h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">Manage your scheduled skill exchange sessions</p>
         </div>
-        <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-2">
+        <div className="mt-4 md:mt-0">
           <Button 
             variant="outline" 
             size="sm" 
@@ -270,15 +314,6 @@ export default function SessionsPage() {
           >
             <RefreshCw className="h-4 w-4 mr-1" />
             Refresh
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => window.location.href = "/calendar"}
-            className="flex items-center"
-          >
-            <Calendar className="h-4 w-4 mr-1" />
-            Calendar View
           </Button>
         </div>
       </div>

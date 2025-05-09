@@ -45,11 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkSession = async () => {
       try {
         setIsLoading(true);
-        const response = await apiRequest("GET", "/api/users/me");
-        const userData = await response.json();
+        const userData = await apiRequest<User>("GET", "/api/users/me");
         if (userData) {
           setIsAuthenticated(true);
-          setUser(userData as User);
+          setUser(userData);
         }
       } catch (error) {
         console.error("Session check failed:", error);
@@ -66,9 +65,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Fetch user when authentication state changes
   useEffect(() => {
     if (isAuthenticated && !user) {
-      apiRequest("GET", "/api/users/me")
-        .then(response => response.json())
-        .then((data) => setUser(data as User))
+      apiRequest<User>("GET", "/api/users/me")
+        .then((userData) => {
+          console.log('User data fetched on auth change:', userData);
+          setUser(userData);
+        })
         .catch((error) => {
           console.error("Failed to fetch user data:", error);
           setUser(null);
@@ -80,13 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string) => {
     try {
+      console.log('Attempting login with:', { username });
       // Call login API
       await apiRequest("POST", "/api/users/login", { username, password });
       setIsAuthenticated(true);
       // Fetch user data
-      const response = await apiRequest("GET", "/api/users/me");
-      const userData = await response.json();
-      setUser(userData as User);
+      const userData = await apiRequest<User>("GET", "/api/users/me");
+      console.log('User data retrieved:', userData);
+      setUser(userData);
     } catch (error) {
       console.error("Login failed:", error);
       setIsAuthenticated(false);
@@ -97,7 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      console.log('Attempting to logout');
       await apiRequest("POST", "/api/users/logout");
+      console.log('Logout successful');
       setIsAuthenticated(false);
       setUser(null);
       navigate("/");

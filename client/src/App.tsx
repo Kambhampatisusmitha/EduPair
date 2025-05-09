@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import MatchesPage from "@/pages/matches";
 import SessionsPage from "@/pages/sessions";
 import CalendarPage from "@/pages/calendar";
+import AnalyticsPage from "@/pages/analytics";
 import UserProfile from "@/pages/user-profile";
 import MyProfile from "@/pages/my-profile";
 import SettingsPage from "@/pages/settings";
@@ -45,6 +46,13 @@ function Router() {
         {() => (
           <AppShell>
             <CalendarPage />
+          </AppShell>
+        )}
+      </Route>
+      <Route path="/analytics">
+        {() => (
+          <AppShell>
+            <AnalyticsPage />
           </AppShell>
         )}
       </Route>
