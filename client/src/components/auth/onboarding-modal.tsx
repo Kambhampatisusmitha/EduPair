@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,10 @@ export default function OnboardingModal() {
   const [learnSkills, setLearnSkills] = useState<string[]>([]);
   const [teachSkillInput, setTeachSkillInput] = useState("");
   const [learnSkillInput, setLearnSkillInput] = useState("");
+  const [avatar, setAvatar] = useState<string>("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const progressPercentage = (currentStep / 4) * 100;
 
@@ -54,12 +58,24 @@ export default function OnboardingModal() {
     }
   };
 
+  // Filter popular teach skills based on search input
+  const filteredTeachSkills = teachSkillInput
+    ? popularTeachSkills.filter(skill => 
+        skill.toLowerCase().includes(teachSkillInput.toLowerCase()))
+    : popularTeachSkills;
+
   const addLearnSkill = () => {
     if (learnSkillInput && learnSkills.length < 3 && !learnSkills.includes(learnSkillInput)) {
       setLearnSkills([...learnSkills, learnSkillInput]);
       setLearnSkillInput("");
     }
   };
+
+  // Filter popular learn skills based on search input
+  const filteredLearnSkills = learnSkillInput
+    ? popularLearnSkills.filter(skill => 
+        skill.toLowerCase().includes(learnSkillInput.toLowerCase()))
+    : popularLearnSkills;
   
   const removeTeachSkill = (skill: string) => {
     setTeachSkills(teachSkills.filter(s => s !== skill));
@@ -79,6 +95,39 @@ export default function OnboardingModal() {
     if (learnSkills.length < 3 && !learnSkills.includes(skill)) {
       setLearnSkills([...learnSkills, skill]);
     }
+  };
+
+  // Handle file selection and upload
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click();
+  };
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    setAvatarFile(file);
+    // Upload to backend
+    const formData = new FormData();
+    formData.append("avatar", file);
+    try {
+      const res = await fetch("http://localhost:5000/api/users/me/avatar", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      // Fetch the avatar blob for preview
+      const imgRes = await fetch("http://localhost:5000/api/users/me/avatar", {
+        credentials: "include",
+      });
+      if (imgRes.ok) {
+        const blob = await imgRes.blob();
+        setAvatar(URL.createObjectURL(blob));
+      }
+    } catch (err) {
+      // Optionally show toast error
+    }
+    setIsUploading(false);
   };
 
   const completeOnboarding = async () => {
@@ -171,15 +220,28 @@ export default function OnboardingModal() {
                   {/* Profile photo upload */}
                   <div className="sm:w-1/3 flex flex-col items-center">
                     <div className="w-32 h-32 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden border-4 border-white dark:border-gray-800 shadow-md mb-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
+                      {avatar ? (
+                        <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      )}
                     </div>
-                    <Button 
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRef}
+                      style={{ display: "none" }}
+                      onChange={handleFileChange}
+                    />
+                    <Button
                       variant="outline"
                       className="bg-secondary/10 hover:bg-secondary/20 dark:bg-light-blue/10 dark:hover:bg-light-blue/20 text-secondary dark:text-light-blue text-sm font-medium py-1 px-3 rounded transition"
+                      onClick={handlePhotoClick}
+                      disabled={isUploading}
                     >
-                      Upload Photo
+                      {isUploading ? "Uploading..." : "Upload Photo"}
                     </Button>
                   </div>
                   
@@ -273,19 +335,39 @@ export default function OnboardingModal() {
                 </div>
                 
                 <div className="mb-4">
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Popular skills:</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {popularTeachSkills.map((skill) => (
-                      <Button
-                        key={skill}
-                        onClick={() => selectTeachSkill(skill)}
-                        disabled={teachSkills.includes(skill) || teachSkills.length >= 3}
-                        variant="outline"
-                        className="bg-gray-100 hover:bg-accent/30 dark:bg-gray-800 dark:hover:bg-accent/10 text-gray-800 dark:text-gray-200 text-sm rounded-full px-3 py-1 transition"
-                      >
-                        {skill}
-                      </Button>
-                    ))}
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {teachSkillInput ? "Matching skills:" : "Popular skills:"}
+                  </h3>
+                  <div className="flex flex-wrap gap-2 min-h-[40px]">
+                    {filteredTeachSkills.length > 0 ? (
+                      filteredTeachSkills.map((skill) => (
+                        <Button
+                          key={skill}
+                          onClick={() => selectTeachSkill(skill)}
+                          disabled={teachSkills.includes(skill) || teachSkills.length >= 3}
+                          variant="outline"
+                          className="bg-gray-100 hover:bg-accent/30 dark:bg-gray-800 dark:hover:bg-accent/10 text-gray-800 dark:text-gray-200 text-sm rounded-full px-3 py-1 transition"
+                        >
+                          {skill}
+                        </Button>
+                      ))
+                    ) : teachSkillInput ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 py-1">
+                        No matching skills found. You can add "{teachSkillInput}" as a new skill.
+                      </p>
+                    ) : (
+                      popularTeachSkills.map((skill) => (
+                        <Button
+                          key={skill}
+                          onClick={() => selectTeachSkill(skill)}
+                          disabled={teachSkills.includes(skill) || teachSkills.length >= 3}
+                          variant="outline"
+                          className="bg-gray-100 hover:bg-accent/30 dark:bg-gray-800 dark:hover:bg-accent/10 text-gray-800 dark:text-gray-200 text-sm rounded-full px-3 py-1 transition"
+                        >
+                          {skill}
+                        </Button>
+                      ))
+                    )}
                   </div>
                 </div>
                 
@@ -348,19 +430,39 @@ export default function OnboardingModal() {
                 </div>
                 
                 <div className="mb-4">
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Popular skills:</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {popularLearnSkills.map((skill) => (
-                      <Button
-                        key={skill}
-                        onClick={() => selectLearnSkill(skill)}
-                        disabled={learnSkills.includes(skill) || learnSkills.length >= 3}
-                        variant="outline"
-                        className="bg-gray-100 hover:bg-light-blue/30 dark:bg-gray-800 dark:hover:bg-light-blue/10 text-gray-800 dark:text-gray-200 text-sm rounded-full px-3 py-1 transition"
-                      >
-                        {skill}
-                      </Button>
-                    ))}
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {learnSkillInput ? "Matching skills:" : "Popular skills:"}
+                  </h3>
+                  <div className="flex flex-wrap gap-2 min-h-[40px]">
+                    {filteredLearnSkills.length > 0 ? (
+                      filteredLearnSkills.map((skill) => (
+                        <Button
+                          key={skill}
+                          onClick={() => selectLearnSkill(skill)}
+                          disabled={learnSkills.includes(skill) || learnSkills.length >= 3}
+                          variant="outline"
+                          className="bg-gray-100 hover:bg-accent/30 dark:bg-gray-800 dark:hover:bg-accent/10 text-gray-800 dark:text-gray-200 text-sm rounded-full px-3 py-1 transition"
+                        >
+                          {skill}
+                        </Button>
+                      ))
+                    ) : learnSkillInput ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 py-1">
+                        No matching skills found. You can add "{learnSkillInput}" as a new skill.
+                      </p>
+                    ) : (
+                      popularLearnSkills.map((skill) => (
+                        <Button
+                          key={skill}
+                          onClick={() => selectLearnSkill(skill)}
+                          disabled={learnSkills.includes(skill) || learnSkills.length >= 3}
+                          variant="outline"
+                          className="bg-gray-100 hover:bg-accent/30 dark:bg-gray-800 dark:hover:bg-accent/10 text-gray-800 dark:text-gray-200 text-sm rounded-full px-3 py-1 transition"
+                        >
+                          {skill}
+                        </Button>
+                      ))
+                    )}
                   </div>
                 </div>
                 

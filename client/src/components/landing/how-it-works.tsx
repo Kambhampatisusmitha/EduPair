@@ -30,7 +30,7 @@ export default function HowItWorks() {
         <div className="mt-16 grid gap-8 md:grid-cols-3">
           {steps.map((step) => (
             <div key={step.number} className="bg-background dark:bg-background rounded-xl p-6 shadow-md">
-              <div className="w-12 h-12 bg-accent dark:bg-accent-dark rounded-full flex items-center justify-center text-primary dark:text-primary-dark font-bold text-xl mb-4">
+              <div className="w-12 h-12 bg-amber dark:bg-accent-dark rounded-full flex items-center justify-center text-[#3A3E88] dark:text-[#3A3E88] font-bold text-xl mb-4">
                 {step.number}
               </div>
               <h3 className="text-xl font-heading font-semibold text-primary dark:text-white">{step.title}</h3>

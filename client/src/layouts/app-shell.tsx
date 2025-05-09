@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   Home, 
@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Logo from "@/components/ui/logo";
-import ThemeToggle from "@/components/theme-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,11 +30,44 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
+// Custom hook to fetch avatar blob and return a blob URL
+function useUserAvatar() {
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  useEffect(() => {
+    let revoked = false;
+    fetch("http://localhost:5000/api/users/me/avatar", { credentials: "include" })
+      .then(res => res.ok ? res.blob() : null)
+      .then(blob => {
+        if (blob && !revoked) {
+          const url = URL.createObjectURL(blob);
+          setAvatarUrl(url);
+          return () => URL.revokeObjectURL(url);
+        }
+      });
+    return () => { revoked = true; };
+  }, []);
+  return avatarUrl;
+}
+
 export default function AppShell({ children }: AppShellProps) {
   const [location] = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState(2);
+  const avatarUrl = useUserAvatar();
+  
+  // Get user initials for avatar fallback
+  const getUserInitials = () => {
+    if (!user) return "";
+    
+    const displayName = user.displayName || user.fullname || "";
+    return displayName
+      .split(" ")
+      .map(name => name[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
 
   const navItems = [
     { icon: Home, label: "Dashboard", path: "/dashboard" },
@@ -161,33 +194,33 @@ export default function AppShell({ children }: AppShellProps) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300">
-                    <Avatar className="h-8 w-8 border border-gray-200 dark:border-gray-700 shadow-sm">
-                      <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                      <AvatarFallback className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-gray-100 font-medium">JD</AvatarFallback>
+                    <Avatar className="h-8 w-8 border border-royal-purple/20 dark:border-royal-purple/30 shadow-sm">
+                      <AvatarImage src={avatarUrl} alt={user?.displayName || user?.fullname || "User"} />
+                      <AvatarFallback className="bg-royal-purple/10 text-royal-purple dark:bg-royal-purple/20 dark:text-snow font-medium">{getUserInitials()}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 p-0 overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg rounded-xl">
-                  <div className="p-4 bg-gradient-to-br from-primary/10 to-transparent dark:from-primary/20 dark:to-transparent">
+                  <div className="p-4 bg-gradient-to-br from-royal-purple/10 to-transparent dark:from-royal-purple/20 dark:to-transparent">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 border-2 border-white dark:border-gray-700 shadow-md">
-                        <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                        <AvatarFallback className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-gray-100 font-medium">JD</AvatarFallback>
+                      <Avatar className="h-12 w-12 border-2 border-snow dark:border-deep-indigo shadow-md">
+                        <AvatarImage src={avatarUrl} alt={user?.displayName || user?.fullname || "User"} />
+                        <AvatarFallback className="bg-royal-purple/10 text-royal-purple dark:bg-royal-purple/20 dark:text-snow font-medium">{getUserInitials()}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">John Doe</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">john@example.com</p>
+                        <p className="text-sm font-medium text-deep-indigo dark:text-snow">{user?.displayName || user?.fullname || "User"}</p>
+                        <p className="text-xs text-charcoal/80 dark:text-lavender/80">{user?.email || ""}</p>
                       </div>
                     </div>
                   </div>
                   
                   <div className="py-2">
-                    <DropdownMenuItem asChild className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800 py-2">
+                    <DropdownMenuItem asChild className="cursor-pointer hover:bg-royal-purple/10 dark:hover:bg-royal-purple/20 focus:bg-royal-purple/10 dark:focus:bg-royal-purple/20 py-2 transition-colors duration-200">
                       <Link href="/profile" className="flex items-center">
-                        <div className="rounded-full bg-gray-100 dark:bg-gray-800 h-8 w-8 flex items-center justify-center mr-2 text-gray-600 dark:text-gray-400">
+                        <div className="rounded-full bg-royal-purple/10 dark:bg-royal-purple/20 h-8 w-8 flex items-center justify-center mr-2 text-royal-purple dark:text-lavender">
                           <User className="h-4 w-4" />
                         </div>
-                        <span>My Profile</span>
+                        <span className="text-deep-indigo dark:text-snow">My Profile</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-100 dark:focus:bg-gray-800 py-2">
@@ -231,15 +264,12 @@ export default function AppShell({ children }: AppShellProps) {
                   : "text-gray-600 dark:text-gray-300"
               }`}
             >
-              <div className={`relative ${location === item.path ? 'after:content-[""] after:absolute after:h-1 after:w-1 after:bg-primary dark:after:bg-white after:rounded-full after:-bottom-1 after:left-1/2 after:-translate-x-1/2' : ''}`}>
-                <item.icon className={`h-6 w-6 transition-transform duration-300 ${location === item.path ? 'scale-110' : ''}`} />
-              </div>
+              <item.icon className={`h-6 w-6 transition-transform duration-300 ${location === item.path ? 'scale-110' : ''}`} />
               <span className="text-xs mt-1 font-medium">{item.label}</span>
             </Link>
           ))}
         </div>
       </div>
-      
       {/* Main content */}
       <main className="flex-grow pb-20 md:pb-6 transition-colors duration-300">
         {children}

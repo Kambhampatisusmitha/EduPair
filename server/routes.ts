@@ -7,9 +7,25 @@ import {
   createPairingRequestSchema,
   createSessionSchema
 } from "@shared/schema";
+import { UpdateProfile } from "@shared/schema";
+
+// Extend UpdateProfile to include avatar for TypeScript
+interface ExtendedUpdateProfile extends UpdateProfile {
+  avatar?: any;
+}
+
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import * as crypto from "crypto";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+declare module "express-session" {
+  interface SessionData {
+    userId?: number;
+  }
+}
 
 // Hash a password
 function hashPassword(password: string): string {
@@ -64,25 +80,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/users/login", async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
-      
+      console.log("[LOGIN] Incoming login for:", username);
+      console.log("[LOGIN] Session before:", req.session);
+      console.log("[LOGIN] Cookies:", req.headers.cookie);
       if (!username || !password) {
         return res.status(400).json({ message: "Username and password are required" });
       }
-      
       const user = await storage.getUserByUsername(username);
-      
       if (!user || user.password !== hashPassword(password)) {
         return res.status(401).json({ message: "Invalid username or password" });
       }
-      
       // Set session
       if (req.session) {
         req.session.userId = user.id;
       }
-      
+      console.log("[LOGIN] Session after:", req.session);
       // Don't return the password
       const { password: _, ...userWithoutPassword } = user;
-      
       res.status(200).json(userWithoutPassword);
     } catch (error) {
       res.status(500).json({ message: "Failed to login" });
@@ -106,15 +120,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === User Routes ===
   app.get("/api/users/me", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const user = await storage.getUser(req.session!.userId);
-      
+      console.log("[ME] Session:", req.session);
+      console.log("[ME] Cookies:", req.headers.cookie);
+      const user = await storage.getUser(req.session!.userId!);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
       // Don't return the password
       const { password, ...userWithoutPassword } = user;
-      
       res.status(200).json(userWithoutPassword);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user" });
@@ -125,13 +138,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const profileData = updateProfileSchema.parse(req.body);
       
-      const user = await storage.getUser(req.session!.userId);
+      const user = await storage.getUser(req.session!.userId!);
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      const updatedUser = await storage.updateUserProfile(req.session!.userId, profileData);
+      const updatedUser = await storage.updateUserProfile(req.session!.userId!, profileData);
       
       // Don't return the password
       const { password, ...userWithoutPassword } = updatedUser;
@@ -148,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get users for matching
   app.get("/api/users", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const currentUserId = req.session!.userId;
+      const currentUserId = req.session!.userId!;
       const { limit = 20, offset = 0, teachSkills, learnSkills } = req.query;
       
       const users = await storage.getUsers({
@@ -174,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(userId!);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -188,11 +201,220 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add a teach skill
+  app.post("/api/users/me/teach-skills", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session!.userId!;
+      const { skill } = req.body;
+      
+      if (!skill || typeof skill !== 'string') {
+        return res.status(400).json({ message: "Skill is required and must be a string" });
+      }
+      
+      const user = await storage.getUser(userId!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const currentTeachSkills = user.teachSkills || [];
+      if (currentTeachSkills.includes(skill.trim())) {
+        return res.status(409).json({ message: "Skill already exists" });
+      }
+      
+      const updatedTeachSkills = [...currentTeachSkills, skill.trim()];
+      await storage.updateUserProfile(userId, { teachSkills: updatedTeachSkills });
+      
+      // Get the updated user
+      const updatedUser = await storage.getUser(userId!);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return the password
+      const userWithoutPassword = {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        fullname: updatedUser.fullname,
+        displayName: updatedUser.displayName,
+        bio: updatedUser.bio,
+        avatar: updatedUser.avatar,
+        teachSkills: updatedUser.teachSkills,
+        learnSkills: updatedUser.learnSkills,
+        createdAt: updatedUser.createdAt
+      };
+      
+      res.status(200).json(userWithoutPassword);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to add teach skill" });
+    }
+  });
+  
+  // Remove a teach skill
+  app.delete("/api/users/me/teach-skills", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session!.userId!;
+      const { skill } = req.body;
+      
+      if (!skill || typeof skill !== 'string') {
+        return res.status(400).json({ message: "Skill is required and must be a string" });
+      }
+      
+      const user = await storage.getUser(userId!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const currentTeachSkills = user.teachSkills || [];
+      const updatedTeachSkills = currentTeachSkills.filter(s => s !== skill);
+      await storage.updateUserProfile(userId, { teachSkills: updatedTeachSkills });
+      
+      // Get the updated user
+      const updatedUser = await storage.getUser(userId!);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return the password
+      const userWithoutPassword = {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        fullname: updatedUser.fullname,
+        displayName: updatedUser.displayName,
+        bio: updatedUser.bio,
+        avatar: updatedUser.avatar,
+        teachSkills: updatedUser.teachSkills,
+        learnSkills: updatedUser.learnSkills,
+        createdAt: updatedUser.createdAt
+      };
+      
+      res.status(200).json(userWithoutPassword);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to remove teach skill" });
+    }
+  });
+  
+  // Add a learn skill
+  app.post("/api/users/me/learn-skills", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session!.userId!;
+      const { skill } = req.body;
+      
+      if (!skill || typeof skill !== 'string') {
+        return res.status(400).json({ message: "Skill is required and must be a string" });
+      }
+      
+      const user = await storage.getUser(userId!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const currentLearnSkills = user.learnSkills || [];
+      if (currentLearnSkills.includes(skill.trim())) {
+        return res.status(409).json({ message: "Skill already exists" });
+      }
+      
+      const updatedLearnSkills = [...currentLearnSkills, skill.trim()];
+      await storage.updateUserProfile(userId, { learnSkills: updatedLearnSkills });
+      
+      // Get the updated user
+      const updatedUser = await storage.getUser(userId!);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return the password
+      const userWithoutPassword = {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        fullname: updatedUser.fullname,
+        displayName: updatedUser.displayName,
+        bio: updatedUser.bio,
+        avatar: updatedUser.avatar,
+        teachSkills: updatedUser.teachSkills,
+        learnSkills: updatedUser.learnSkills,
+        createdAt: updatedUser.createdAt
+      };
+      
+      res.status(200).json(userWithoutPassword);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to add learn skill" });
+    }
+  });
+  
+  // Remove a learn skill
+  app.delete("/api/users/me/learn-skills", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session!.userId!;
+      const { skill } = req.body;
+      
+      if (!skill || typeof skill !== 'string') {
+        return res.status(400).json({ message: "Skill is required and must be a string" });
+      }
+      
+      const user = await storage.getUser(userId!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const currentLearnSkills = user.learnSkills || [];
+      const updatedLearnSkills = currentLearnSkills.filter(s => s !== skill);
+      await storage.updateUserProfile(userId, { learnSkills: updatedLearnSkills });
+      
+      // Get the updated user
+      const updatedUser = await storage.getUser(userId!);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return the password
+      const userWithoutPassword = {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        fullname: updatedUser.fullname,
+        displayName: updatedUser.displayName,
+        bio: updatedUser.bio,
+        avatar: updatedUser.avatar,
+        teachSkills: updatedUser.teachSkills,
+        learnSkills: updatedUser.learnSkills,
+        createdAt: updatedUser.createdAt
+      };
+      
+      res.status(200).json(userWithoutPassword);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Failed to remove learn skill" });
+    }
+  });
+
+  // === Matches Routes ===
+  // Get suggested matches
+  app.get("/api/matches/suggested", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session!.userId!;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const suggestedMatches = await storage.getSuggestedMatches({
+        userId,
+        limit,
+        offset
+      });
+      
+      res.status(200).json(suggestedMatches);
+    } catch (error) {
+      console.error("Error getting suggested matches:", error);
+      res.status(500).json({ message: "Failed to get suggested matches" });
+    }
+  });
+  
   // === Pairing Requests Routes ===
   // Create a pairing request
   app.post("/api/pairing-requests", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const requesterId = req.session!.userId;
+      const requesterId = req.session!.userId!;
       const requestData = createPairingRequestSchema.parse(req.body);
       
       // Ensure user isn't sending request to themselves
@@ -230,13 +452,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all pairing requests for the current user (sent and received)
   app.get("/api/pairing-requests", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session!.userId;
-      const { status, type = "all" } = req.query;
+      const userId = req.session!.userId!;
+      const { status } = req.query;
+      const typeParam = req.query.type as string | undefined;
+      
+      if (typeParam && !['sent', 'received', 'all'].includes(typeParam)) {
+        return res.status(400).json({ message: "Invalid request type" });
+      }
+      
+      // Default to 'all' if type is not provided or invalid
+      const requestType = (typeParam === 'sent' || typeParam === 'received') ? typeParam : 'all';
       
       const requests = await storage.getPairingRequests({
         userId,
         status: status ? String(status) : undefined,
-        type: String(type)
+        type: requestType
       });
       
       res.status(200).json(requests);
@@ -254,7 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid request ID" });
       }
       
-      const userId = req.session!.userId;
+      const userId = req.session!.userId!;
       const { status } = req.body;
       
       if (!["accepted", "declined", "cancelled"].includes(status)) {
@@ -291,7 +521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sessions", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const sessionData = createSessionSchema.parse(req.body);
-      const userId = req.session!.userId;
+      const userId = req.session!.userId!;
       
       // Get the associated pairing request
       const request = await storage.getPairingRequest(sessionData.requestId);
@@ -325,7 +555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all sessions for the current user
   app.get("/api/sessions", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session!.userId;
+      const userId = req.session!.userId!;
       const { status } = req.query;
       
       const sessions = await storage.getUserSessions({
@@ -348,7 +578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid session ID" });
       }
       
-      const userId = req.session!.userId;
+      const userId = req.session!.userId!;
       const { status, scheduledDate, duration, location, notes } = req.body;
       
       // Get the session
@@ -382,7 +612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get suggested matches for the current user
   app.get("/api/matches/suggested", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = req.session!.userId;
+      const userId = req.session!.userId!;
       const { limit = 10, offset = 0 } = req.query;
       
       const matches = await storage.getSuggestedMatches({
@@ -395,6 +625,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "Failed to fetch suggested matches" });
+    }
+  });
+
+  // === Avatar Upload ===
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max
+    fileFilter: (req, file, cb) => {
+      if (!file.mimetype.startsWith("image/")) {
+        return cb(new Error("Only image files are allowed"));
+      }
+      cb(null, true);
+    },
+  });
+
+  app.post("/api/users/me/avatar", isAuthenticated, upload.single("avatar"), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+      
+      console.log("File received:", req.file.originalname, req.file.mimetype, req.file.size);
+      
+      // Convert buffer to base64 string for storage
+      const base64Image = req.file.buffer.toString('base64');
+      
+      // Store the image as a base64 string with its mimetype
+      const profileUpdate: ExtendedUpdateProfile = {
+        avatar: JSON.stringify({
+          data: base64Image,
+          contentType: req.file.mimetype
+        })
+      };
+      
+      await storage.updateUserProfile(req.session!.userId!, profileUpdate as any);
+      
+      res.status(200).json({ success: true });
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      res.status(500).json({ message: "Failed to upload avatar" });
+    }
+  });
+
+  app.get("/api/users/me/avatar", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getUser(req.session!.userId!);
+      if (!user || !user.avatar) {
+        return res.status(404).json({ message: "No avatar found" });
+      }
+      
+      try {
+        // Parse the stored JSON string - ensure we're working with a string
+        const avatarString = typeof user.avatar === 'string' ? user.avatar : 
+                            Buffer.isBuffer(user.avatar) ? user.avatar.toString('utf8') : 
+                            JSON.stringify(user.avatar);
+        
+        const avatarData = JSON.parse(avatarString);
+        
+        // Get the content type and base64 data
+        const contentType = avatarData.contentType || "image/png";
+        const imageBuffer = Buffer.from(avatarData.data, 'base64');
+        
+        // Set the content type and send the buffer
+        res.setHeader("Content-Type", contentType);
+        res.send(imageBuffer);
+      } catch (parseError) {
+        // Fallback for old avatar format or invalid JSON
+        console.error("Error parsing avatar data:", parseError);
+        res.setHeader("Content-Type", "image/png");
+        res.send(user.avatar);
+      }
+    } catch (err) {
+      console.error("Avatar fetch error:", err);
+      res.status(500).json({ message: "Failed to fetch avatar" });
     }
   });
 

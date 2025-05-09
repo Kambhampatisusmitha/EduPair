@@ -3,7 +3,7 @@ import HowItWorks from "@/components/landing/how-it-works";
 import TrendingSkills from "@/components/landing/trending-skills";
 import SuccessStories from "@/components/landing/success-stories";
 import Footer from "@/components/landing/footer";
-import ThemeToggle from "@/components/theme-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 import Logo from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -29,7 +29,7 @@ export default function LandingPage() {
               
               <Button
                 variant="outline"
-                className="bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 text-primary dark:text-light-blue font-medium py-2 px-4 rounded-lg border border-gray-300 dark:border-gray-700 transition"
+                className="bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-gray-700 text-primary dark:text-white font-medium py-2 px-4 rounded-lg border border-gray-300 dark:border-gray-500 transition"
                 onClick={openLoginModal}
               >
                 Log In

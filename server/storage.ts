@@ -433,7 +433,7 @@ export class DatabaseStorage implements IStorage {
     // Get all users except the current user
     const otherUsers = await this.getUsers({
       currentUserId: options.userId,
-      limit: 50,  // Get a reasonable amount of users to find matches
+      limit: 100,  // Get more users to increase chances of finding mutual benefit matches
       offset: 0
     });
     
@@ -441,8 +441,10 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
     
-    // Calculate match scores
-    const matches: SuggestedMatch[] = otherUsers.map(user => {
+    // Calculate match scores and filter for mutual benefit only
+    const mutualBenefitMatches: SuggestedMatch[] = [];
+    
+    for (const user of otherUsers) {
       // Find skills where user can teach what current user wants to learn
       const matchingTeachSkills = (user.teachSkills || []).filter(skill => 
         (currentUser.learnSkills || []).includes(skill)
@@ -453,20 +455,22 @@ export class DatabaseStorage implements IStorage {
         (currentUser.teachSkills || []).includes(skill)
       );
       
-      // Calculate match score based on number of matching skills
-      const matchScore = matchingTeachSkills.length + matchingLearnSkills.length;
-      
-      return {
-        user,
-        matchingTeachSkills,
-        matchingLearnSkills,
-        matchScore
-      };
-    });
+      // Only include matches with mutual benefit (skills in both directions)
+      if (matchingTeachSkills.length > 0 && matchingLearnSkills.length > 0) {
+        // Calculate match score based on number of matching skills
+        const matchScore = matchingTeachSkills.length + matchingLearnSkills.length;
+        
+        mutualBenefitMatches.push({
+          user,
+          matchingTeachSkills,
+          matchingLearnSkills,
+          matchScore
+        });
+      }
+    }
     
     // Sort by match score (highest first) and limit results
-    const sortedMatches = matches
-      .filter(match => match.matchScore > 0)  // Only include actual matches
+    const sortedMatches = mutualBenefitMatches
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(options.offset, options.offset + options.limit);
     

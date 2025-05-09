@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Presentation, BookOpen, Brain, LightbulbIcon, GraduationCap, Code, Palette, Music, ActivitySquare } from "lucide-react";
+import { Presentation, BookOpen, Brain, LightbulbIcon, GraduationCap, Code, Palette, Music, ActivitySquare, X } from "lucide-react";
 
 interface SkillTagProps {
   children: ReactNode;
@@ -10,6 +10,7 @@ interface SkillTagProps {
   variant?: "default" | "subtle" | "outlined" | "solid";
   className?: string;
   animated?: boolean;
+  onRemove?: () => void;
 }
 
 // Map skills to appropriate icons based on their names
@@ -51,7 +52,8 @@ export default function SkillTag({
   size = "md", 
   variant = "default",
   animated = false,
-  className 
+  className,
+  onRemove
 }: SkillTagProps) {
   const skillContent = typeof children === 'string' ? children : 'Skill';
   const IconComponent = getSkillIcon(skillContent as string, type);
@@ -70,42 +72,53 @@ export default function SkillTag({
   
   const variantClasses = {
     default: type === "teach"
-      ? "bg-[#ECEFCA]/70 text-primary dark:bg-[#ECEFCA]/30 dark:text-[#ECEFCA] border border-[#ECEFCA]/30 dark:border-[#ECEFCA]/20"
-      : "bg-[#94B4C1]/70 text-primary dark:bg-[#94B4C1]/30 dark:text-[#94B4C1] border border-[#94B4C1]/30 dark:border-[#94B4C1]/20",
+      ? "bg-royal-purple text-snow dark:bg-royal-purple dark:text-snow border border-royal-purple/30 dark:border-royal-purple/20"
+      : "bg-teal text-snow dark:bg-teal dark:text-snow border border-teal/30 dark:border-teal/20",
     
     subtle: type === "teach"
-      ? "bg-[#ECEFCA]/20 text-[#5c6437] dark:bg-[#ECEFCA]/10 dark:text-[#ECEFCA]/80 border border-transparent"
-      : "bg-[#94B4C1]/20 text-[#425f6d] dark:bg-[#94B4C1]/10 dark:text-[#94B4C1]/80 border border-transparent",
+      ? "bg-lavender/20 text-royal-purple dark:bg-lavender/10 dark:text-lavender border border-transparent"
+      : "bg-aqua-breeze/20 text-teal dark:bg-aqua-breeze/10 dark:text-aqua-breeze border border-transparent",
     
     outlined: type === "teach"
-      ? "bg-transparent text-[#5c6437] dark:text-[#ECEFCA] border border-[#ECEFCA]/50 dark:border-[#ECEFCA]/30"
-      : "bg-transparent text-[#425f6d] dark:text-[#94B4C1] border border-[#94B4C1]/50 dark:border-[#94B4C1]/30",
+      ? "bg-transparent text-royal-purple dark:text-lavender border border-royal-purple/50 dark:border-lavender/30"
+      : "bg-transparent text-teal dark:text-aqua-breeze border border-teal/50 dark:border-aqua-breeze/30",
     
     solid: type === "teach"
-      ? "bg-[#ECEFCA] text-primary dark:bg-[#ECEFCA]/90 dark:text-gray-900 border border-[#ECEFCA]/70"
-      : "bg-[#94B4C1] text-primary dark:bg-[#94B4C1]/90 dark:text-gray-900 border border-[#94B4C1]/70",
+      ? "bg-royal-purple text-snow dark:bg-royal-purple dark:text-snow border border-royal-purple/70"
+      : "bg-teal text-snow dark:bg-teal dark:text-snow border border-teal/70",
   };
   
   return (
-    <Badge 
-      variant="outline"
-      className={cn(
-        "inline-flex items-center font-medium rounded-full border transition-all duration-300",
-        sizeClasses[size],
-        variantClasses[variant],
-        animated && "hover:scale-105 hover:shadow-sm",
-        animated && type === "teach" 
-          ? "hover:bg-[#ECEFCA]/90 dark:hover:bg-[#ECEFCA]/40" 
-          : "hover:bg-[#94B4C1]/90 dark:hover:bg-[#94B4C1]/40",
-        className
+    <div className="relative inline-flex group">
+      {onRemove && (
+        <button 
+          onClick={onRemove} 
+          className="absolute -top-2 -right-2 bg-white dark:bg-deep-indigo rounded-full p-0.5 shadow-sm border border-gray-200 dark:border-gray-700 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label="Remove skill"
+        >
+          <X className="h-3 w-3 text-gray-500 dark:text-gray-400" />
+        </button>
       )}
-    >
-      <IconComponent className={cn(
-        iconSizes[size], 
-        "flex-shrink-0", 
-        animated && "group-hover:rotate-12 transition-transform"
-      )} />
-      <span>{children}</span>
-    </Badge>
+      <Badge 
+        variant="outline"
+        className={cn(
+          "inline-flex items-center font-medium rounded-full border transition-all duration-300",
+          sizeClasses[size],
+          variantClasses[variant],
+          animated && "hover:scale-105 hover:shadow-sm",
+          animated && type === "teach" 
+            ? "hover:bg-royal-purple/90 hover:border-lavender dark:hover:bg-royal-purple/80" 
+            : "hover:bg-teal/90 hover:border-aqua-breeze dark:hover:bg-teal/80",
+          className
+        )}
+      >
+        <IconComponent className={cn(
+          iconSizes[size], 
+          "flex-shrink-0", 
+          animated && "group-hover:rotate-12 transition-transform"
+        )} />
+        <span>{children}</span>
+      </Badge>
+    </div>
   );
 }

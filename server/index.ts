@@ -1,8 +1,32 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import cors from "cors";
+import session from "express-session";
+import MemoryStore from "memorystore";
 
 const app = express();
+
+// CORS setup for frontend on localhost:5173
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+}));
+
+// Session setup
+const MemoryStoreSession = MemoryStore(session);
+app.use(session({
+  secret: "your-secret-key", // Change this in production
+  resave: false,
+  saveUninitialized: false,
+  store: new MemoryStoreSession({ checkPeriod: 86400000 }),
+  cookie: {
+    secure: false, // true if using HTTPS
+    sameSite: "lax", // or 'none' if using HTTPS and cross-origin
+    maxAge: 1000 * 60 * 60 * 24, // 1 day
+  },
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -59,12 +83,7 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+  server.listen(5000, 'localhost', () => {
+    console.log('Server is running on http://localhost:5000');
   });
 })();

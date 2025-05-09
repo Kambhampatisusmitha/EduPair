@@ -5,21 +5,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.98]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.98] font-semibold",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md",
+        default: "bg-royal-purple text-snow hover:bg-royal-purple/90 hover:scale-[1.02] shadow-sm hover:shadow-md",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm hover:shadow-md",
+          "bg-error text-snow hover:bg-error/90 hover:scale-[1.02] shadow-sm hover:shadow-md",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground shadow-sm hover:shadow hover:border-accent/50",
+          "border border-input bg-background hover:bg-amber/10 hover:text-amber hover:border-amber shadow-sm hover:shadow hover:scale-[1.02]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm hover:shadow-md",
-        ghost: "hover:bg-accent/30 hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        accent: "bg-accent text-accent-foreground hover:bg-accent/90 shadow-sm hover:shadow-md",
-        light: "bg-light-blue text-light-blue-foreground hover:bg-light-blue/90 shadow-sm hover:shadow-md",
+          "bg-teal text-snow hover:bg-teal/90 hover:scale-[1.02] shadow-sm hover:shadow-md",
+        ghost: "hover:bg-amber/10 hover:text-amber hover:scale-[1.02]",
+        link: "text-royal-purple hover:text-royal-purple/80 underline-offset-4 hover:underline",
+        accent: "bg-amber text-deep-indigo hover:bg-amber/90 hover:scale-[1.02] shadow-sm hover:shadow-md",
+        teach: "bg-royal-purple text-snow hover:bg-royal-purple/90 hover:scale-[1.02] shadow-sm hover:shadow-md",
+        learn: "bg-teal text-snow hover:bg-teal/90 hover:scale-[1.02] shadow-sm hover:shadow-md",
       },
       size: {
         default: "h-10 px-5 py-2",

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp, pgEnum, customType } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -11,7 +11,9 @@ export const users = pgTable("users", {
   fullname: text("fullname").notNull(),
   displayName: text("display_name"),
   bio: text("bio"),
-  avatar: text("avatar"),
+  avatar: customType<{ data: Buffer }>({
+    dataType() { return "bytea"; }
+  })("avatar"),
   teachSkills: jsonb("teach_skills").$type<string[]>().default([]),
   learnSkills: jsonb("learn_skills").$type<string[]>().default([]),
   createdAt: timestamp("created_at").defaultNow(),
@@ -110,18 +112,17 @@ export const sessionParticipantsRelations = relations(sessionParticipants, ({ on
 }));
 
 // === Schema Validation ===
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  fullname: true,
+export const insertUserSchema = z.object({
+  username: z.string(),
+  password: z.string(),
+  fullname: z.string(),
 });
 
-export const updateProfileSchema = createInsertSchema(users).pick({
-  displayName: true,
-  bio: true,
-  avatar: true,
-  teachSkills: true,
-  learnSkills: true,
+export const updateProfileSchema = z.object({
+  displayName: z.string().optional(),
+  bio: z.string().optional(),
+  teachSkills: z.array(z.string()).optional(),
+  learnSkills: z.array(z.string()).optional(),
 });
 
 export const createPairingRequestSchema = createInsertSchema(pairingRequests).pick({

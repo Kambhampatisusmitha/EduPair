@@ -12,7 +12,7 @@ export interface User {
 }
 
 // Partial user information for use in UI components
-export type PartialUser = Pick<User, 'id' | 'fullname' | 'displayName' | 'avatar' | 'teachSkills' | 'learnSkills'>;
+export type PartialUser = Pick<User, 'id' | 'fullname' | 'displayName' | 'avatar' | 'bio' | 'teachSkills' | 'learnSkills'>;
 
 // Suggested matches returned from the matching API
 export interface SuggestedMatch {

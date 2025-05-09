@@ -84,13 +84,16 @@ export default function SignupForm() {
   return (
     <Dialog open={isSignupOpen} onOpenChange={closeSignupModal}>
       <DialogContent className="bg-white dark:bg-card rounded-xl shadow-2xl w-full max-w-md mx-4 sm:mx-auto overflow-hidden fade-in">
-        <DialogHeader className="flex justify-between items-center mb-4">
-          <DialogTitle className="text-2xl font-heading font-bold text-primary dark:text-white">
+        <DialogHeader className="text-center mb-2">
+          <DialogTitle className="text-2xl font-heading font-bold text-royal-purple dark:text-lavender">
             Create an Account
           </DialogTitle>
+          <p className="text-sm text-charcoal/70 dark:text-lavender/70 mt-1 font-medium">
+            Join our knowledge exchange community and grow together
+          </p>
           <Button 
             variant="ghost" 
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 h-auto"
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 h-auto absolute right-4 top-4"
             onClick={closeSignupModal}
           >
             <X className="h-6 w-6" />
@@ -230,7 +233,7 @@ export default function SignupForm() {
             <Button 
               type="submit" 
               disabled={isLoading}
-              className="w-full bg-primary hover:bg-primary-dark dark:bg-secondary dark:hover:bg-secondary-dark text-white font-medium py-2 px-4 rounded-lg transition flex justify-center items-center"
+              className="w-full bg-royal-purple hover:bg-royal-purple/90 dark:bg-royal-purple dark:hover:bg-royal-purple/90 text-snow font-medium py-3 px-4 rounded-lg transition-all duration-300 flex justify-center items-center shadow-md hover:shadow-lg"
             >
               {isLoading ? (
                 <>
@@ -240,13 +243,13 @@ export default function SignupForm() {
               ) : "Create Account"}
             </Button>
             
-            <div className="text-center mt-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-center mt-6">
+              <p className="text-sm text-charcoal/80 dark:text-lavender/80">
                 Already have an account?{" "}
                 <Button 
                   type="button" 
                   variant="link" 
-                  className="text-secondary dark:text-light-blue hover:underline p-0"
+                  className="text-royal-purple dark:text-lavender hover:text-royal-purple/80 dark:hover:text-lavender/80 font-medium p-0 transition-colors"
                   onClick={() => {
                     closeSignupModal();
                     openLoginModal();

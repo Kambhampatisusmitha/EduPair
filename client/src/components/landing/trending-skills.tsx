@@ -55,7 +55,7 @@ export default function TrendingSkills() {
                     {skill.name}
                   </h3>
                   <div className="flex space-x-2">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm skill-teach">
+                    <span className="flex items-center justify-center px-3 py-1 rounded-full text-center text-sm skill-teach">
                       {skill.teachingCount.toLocaleString()} Teaching
                     </span>
                   </div>
@@ -65,7 +65,7 @@ export default function TrendingSkills() {
                     {skill.categories.join(", ")}
                   </p>
                   <div className="flex space-x-2">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm skill-learn">
+                    <span className="flex items-center justify-center px-3 py-1 rounded-full text-center text-sm skill-learn">
                       {skill.learningCount.toLocaleString()} Learning
                     </span>
                   </div>
@@ -75,6 +75,7 @@ export default function TrendingSkills() {
           ))}
         </div>
 
+          {/* CTA */}
         <div className="mt-12 text-center">
           <Button 
             onClick={openSignupModal}

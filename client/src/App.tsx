@@ -8,7 +8,10 @@ import MatchesPage from "@/pages/matches";
 import SessionsPage from "@/pages/sessions";
 import CalendarPage from "@/pages/calendar";
 import UserProfile from "@/pages/user-profile";
+import MyProfile from "@/pages/my-profile";
+import SettingsPage from "@/pages/settings";
 import { AuthProvider } from "@/contexts/auth-context";
+import { ThemeProvider } from "@/contexts/theme-context";
 import MainLayout from "@/layouts/main-layout";
 import AppShell from "@/layouts/app-shell";
 
@@ -51,6 +54,20 @@ function Router() {
           </AppShell>
         )}
       </Route>
+      <Route path="/profile">
+        {() => (
+          <AppShell>
+            <MyProfile />
+          </AppShell>
+        )}
+      </Route>
+      <Route path="/settings">
+        {() => (
+          <AppShell>
+            <SettingsPage />
+          </AppShell>
+        )}
+      </Route>
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
@@ -59,14 +76,16 @@ function Router() {
 
 function App() {
   return (
-    <AuthProvider>
-      <TooltipProvider>
-        <MainLayout>
-          <Toaster />
-          <Router />
-        </MainLayout>
-      </TooltipProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <MainLayout>
+            <Toaster />
+            <Router />
+          </MainLayout>
+        </TooltipProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

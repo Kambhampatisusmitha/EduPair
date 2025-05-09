@@ -12,22 +12,22 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
     <div
       ref={ref}
       className={cn(
-        "rounded-xl bg-card text-card-foreground transition-all duration-300",
+        "rounded-lg bg-card text-card-foreground transition-all duration-300",
         {
           // Default with shadow
-          "border border-gray-200 dark:border-gray-800 shadow-sm": variant === "default",
+          "border border-border shadow-card-light dark:shadow-card-dark": variant === "default",
           
           // Bordered with stronger border
-          "border-2 border-gray-200 dark:border-gray-800": variant === "bordered",
+          "border-2 border-royal-purple/20 dark:border-royal-purple/30": variant === "bordered",
           
           // Gradient background
-          "bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 border border-gray-100 dark:border-gray-800": variant === "gradient",
+          "bg-gradient-to-br from-rich-cream to-snow dark:from-deep-indigo dark:to-nightshade border border-border": variant === "gradient",
           
           // Flat without shadow
-          "border border-gray-100 dark:border-gray-800": variant === "flat",
+          "border border-border": variant === "flat",
           
           // Hover effects
-          "hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700": hover,
+          "hover:shadow-elevated hover:translate-y-[-2px] hover:border-amber/20 dark:hover:border-amber/30": hover,
         },
         className
       )}
@@ -43,7 +43,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6 border-b border-gray-100 dark:border-gray-800", className)}
+    className={cn("flex flex-col space-y-1.5 p-6 border-b border-border", className)}
     {...props}
   />
 ))
@@ -56,7 +56,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-xl font-semibold leading-none tracking-tight text-gray-900 dark:text-white",
+      "text-xl font-semibold leading-none tracking-tight text-deep-indigo dark:text-snow font-heading",
       className
     )}
     {...props}
@@ -70,7 +70,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-gray-500 dark:text-gray-400 mt-2", className)}
+    className={cn("text-sm text-charcoal/80 dark:text-lavender/80 mt-2", className)}
     {...props}
   />
 ))

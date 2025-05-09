@@ -337,16 +337,31 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
               <div className="flex-grow">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <h3 
-                    className="text-xl font-heading font-bold text-primary dark:text-white cursor-pointer hover:underline"
+                    className="text-xl font-heading font-bold text-deep-indigo dark:text-white cursor-pointer hover:underline"
                     onClick={handleViewProfile}
                   >
                     {match.user.displayName || match.user.fullname}
                   </h3>
                   
-                  <Badge className="w-fit text-sm bg-secondary/20 text-primary dark:bg-light-blue/20 dark:text-light-blue">
+                  <Badge className="w-fit text-sm bg-amber/20 text-deep-indigo dark:bg-amber/30 dark:text-white">
                     {match.matchScore > 3 ? "Strong" : match.matchScore > 1 ? "Good" : "Potential"} Match
                   </Badge>
+                  
+                  {match.matchingTeachSkills.length > 0 && match.matchingLearnSkills.length > 0 ? (
+                    <Badge className="w-fit text-sm bg-success/20 text-success dark:bg-success/30 dark:text-success flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
+                      </svg>
+                      Mutual Benefit
+                    </Badge>
+                  ) : null}
                 </div>
+                
+                {match.user.bio && (
+                  <p className="text-charcoal dark:text-lavender/80 mt-2 text-sm">
+                    {match.user.bio}
+                  </p>
+                )}
               </div>
             </div>
             
@@ -399,7 +414,7 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
             
             <Button 
               onClick={() => setIsRequestModalOpen(true)}
-              disabled={match.matchingLearnSkills.length === 0 && match.matchingTeachSkills.length === 0}
+              disabled={match.matchingLearnSkills.length === 0 || match.matchingTeachSkills.length === 0}
             >
               <UserPlus className="h-4 w-4 mr-2" />
               Request to Pair
@@ -421,32 +436,48 @@ const UserMatchCard = ({ match }: { match: SuggestedMatch }) => {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Skills Match</h4>
-              <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg space-y-3">
-                {match.matchingLearnSkills.length > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {match.user.displayName || match.user.fullname} can teach you:
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {match.matchingLearnSkills.map((skill) => (
-                        <SkillTag key={skill} type="learn">{skill}</SkillTag>
-                      ))}
-                    </div>
+              <div className="bg-rich-cream dark:bg-charcoal p-4 rounded-lg space-y-4 border-2 border-amber/30">
+                <div className="flex justify-center items-center mb-2">
+                  <div className="bg-success/10 text-success px-3 py-1 rounded-full flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22v-5"/>
+                      <path d="M9 8V2"/>
+                      <path d="M15 8V2"/>
+                      <path d="M12 8a4 4 0 0 0-4 4v2a4 4 0 0 0 8 0v-2a4 4 0 0 0-4-4Z"/>
+                    </svg>
+                    <span className="font-semibold">Mutual Knowledge Exchange</span>
                   </div>
-                )}
+                </div>
                 
-                {match.matchingTeachSkills.length > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      You can teach {match.user.displayName || match.user.fullname}:
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {match.matchingTeachSkills.map((skill) => (
-                        <SkillTag key={skill} type="teach">{skill}</SkillTag>
-                      ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {match.matchingTeachSkills.length > 0 && (
+                    <div className="bg-white dark:bg-deep-indigo/20 p-3 rounded-lg border border-teal/30">
+                      <h4 className="text-sm font-semibold mb-2 flex items-center text-teal">
+                        <span className="inline-block w-3 h-3 rounded-full bg-teal mr-2"></span>
+                        They can teach you:
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {match.matchingTeachSkills.map(skill => (
+                          <SkillTag key={skill} type="teach" className="border-2 border-teal animate-pulse-slow">{skill}</SkillTag>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                  
+                  {match.matchingLearnSkills.length > 0 && (
+                    <div className="bg-white dark:bg-deep-indigo/20 p-3 rounded-lg border border-royal-purple/30">
+                      <h4 className="text-sm font-semibold mb-2 flex items-center text-royal-purple">
+                        <span className="inline-block w-3 h-3 rounded-full bg-royal-purple mr-2"></span>
+                        You can teach them:
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {match.matchingLearnSkills.map(skill => (
+                          <SkillTag key={skill} type="learn" className="border-2 border-royal-purple animate-pulse-slow">{skill}</SkillTag>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -541,15 +572,15 @@ export default function MatchesPage() {
     <div className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-primary dark:text-white">Find Learning Partners</h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">Discover users with complementary skills and manage pairing requests</p>
+          <h1 className="text-3xl font-heading font-bold text-deep-indigo dark:text-white">Find Learning Partners</h1>
+          <p className="text-charcoal dark:text-gray-300 mt-1">Discover users with complementary skills and manage pairing requests</p>
         </div>
         <div className="mt-4 md:mt-0">
           <Button 
             variant="outline" 
             size="sm" 
+            className="bg-amber/10 hover:bg-amber/20 text-deep-indigo border-amber flex items-center"
             onClick={handleRefresh}
-            className="flex items-center"
           >
             <RefreshCw className="h-4 w-4 mr-1" />
             Refresh
@@ -557,42 +588,36 @@ export default function MatchesPage() {
         </div>
       </div>
       
-      <Tabs defaultValue="potential" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-8 bg-rich-cream dark:bg-charcoal">
           <TabsTrigger 
             value="potential" 
-            className="flex items-center justify-center"
+            className="flex items-center data-[state=active]:bg-royal-purple data-[state=active]:text-white"
           >
-            <Users className="h-4 w-4 mr-2" />
-            Potential Matches
+            <Users className="h-4 w-4 mr-1" />
+            Suggested Matches
             {suggestedMatches && suggestedMatches.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {suggestedMatches.length}
-              </Badge>
+              <Badge className="ml-2 bg-amber/20 text-deep-indigo dark:text-white">{suggestedMatches.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger 
             value="incoming" 
-            className="flex items-center justify-center"
+            className="flex items-center data-[state=active]:bg-teal data-[state=active]:text-white"
           >
-            <ArrowRight className="h-4 w-4 mr-2" />
-            Incoming
+            <UserPlus className="h-4 w-4 mr-1" />
+            Incoming Requests
             {incomingRequests.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {incomingRequests.length}
-              </Badge>
+              <Badge className="ml-2 bg-amber/20 text-deep-indigo dark:text-white">{incomingRequests.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger 
             value="outgoing" 
-            className="flex items-center justify-center"
+            className="flex items-center data-[state=active]:bg-amber data-[state=active]:text-deep-indigo"
           >
-            <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
-            Outgoing
+            <ArrowRight className="h-4 w-4 mr-1" />
+            Outgoing Requests
             {outgoingRequests.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {outgoingRequests.length}
-              </Badge>
+              <Badge className="ml-2 bg-deep-indigo/20 text-deep-indigo dark:text-white">{outgoingRequests.length}</Badge>
             )}
           </TabsTrigger>
         </TabsList>
@@ -628,7 +653,7 @@ export default function MatchesPage() {
                       </div>
                     </div>
                     <div className="mt-4 flex justify-between">
-                      <Skeleton className="h-10 w-28" />
+                      <Skeleton className="h-10 w-24" />
                       <Skeleton className="h-10 w-36" />
                     </div>
                   </CardContent>
@@ -643,7 +668,7 @@ export default function MatchesPage() {
                 </div>
                 <h3 className="text-xl font-medium mb-2">Failed to load matches</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
-                  There was an error loading your potential matches. Please try again.
+                  There was an error loading your suggested matches. Please try again.
                 </p>
                 <Button onClick={handleRefresh}>
                   Try Again
@@ -656,21 +681,42 @@ export default function MatchesPage() {
                 <div className="text-gray-400 mb-2">
                   <Users className="h-10 w-10" />
                 </div>
-                <h3 className="text-xl font-medium mb-2">No matches found</h3>
+                <h3 className="text-xl font-medium mb-2">No mutual benefit matches found</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
-                  We couldn't find any potential skill matches based on your profile.
-                  Try updating your skills in your profile to find more matches.
+                  We couldn't find any users with mutual skill exchange benefits.
+                  Try adding more skills to your profile to increase your chances of finding matches.
                 </p>
-                <Button variant="outline">
-                  Update Profile
+                <Button 
+                  onClick={() => navigate('/profile/edit')}
+                  variant="outline"
+                >
+                  Update Skills
                 </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {suggestedMatches?.map(match => (
-                <UserMatchCard key={match.user.id} match={match} />
-              ))}
+            <div className="space-y-6">
+              <div className="bg-royal-purple/10 dark:bg-royal-purple/20 border border-royal-purple/30 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-royal-purple">
+                    <path d="M12 22v-5"/>
+                    <path d="M9 8V2"/>
+                    <path d="M15 8V2"/>
+                    <path d="M12 8a4 4 0 0 0-4 4v2a4 4 0 0 0 8 0v-2a4 4 0 0 0-4-4Z"/>
+                  </svg>
+                  <h3 className="text-lg font-semibold text-deep-indigo dark:text-white">Mutual Benefit Matches</h3>
+                </div>
+                <p className="text-sm text-charcoal dark:text-gray-300">
+                  These matches have skills that complement yours, creating a mutual learning opportunity. 
+                  Each match can teach you skills you want to learn, and you can teach them skills they want to learn.
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {suggestedMatches.map(match => (
+                  <UserMatchCard key={match.user.id} match={match} />
+                ))}
+              </div>
             </div>
           )}
         </TabsContent>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!-- Knowledge Exchange Logo -->
+  <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+    <!-- Graduation Cap -->
+    <path d="M12,2 L2,8 L12,14 L22,8 L12,2 Z" fill="#3A3E88" fill-rule="nonzero"/>
+    <!-- Tassel -->
+    <path d="M19,10 L19,15 C19,17.2091 15.866,19 12,19 C8.13401,19 5,17.2091 5,15 L5,10" stroke="#5BC0BE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Book Pages -->
+    <path d="M7,11 L7,16 C7,16 9,17 12,17 C15,17 17,16 17,16 L17,11" stroke="#D7A84A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Cap Top Button -->
+    <circle cx="12" cy="4" r="1" fill="#F5F5F5"/>
+  </g>
+</svg>

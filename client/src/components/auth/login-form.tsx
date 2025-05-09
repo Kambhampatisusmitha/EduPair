@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/auth-context";
 
 const loginSchema = z.object({
@@ -22,7 +21,7 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
-  const { isLoginOpen, closeLoginModal, openSignupModal } = useAuth();
+  const { isLoginOpen, closeLoginModal, openSignupModal, login } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
@@ -40,17 +39,12 @@ export default function LoginForm() {
   const onSubmit = async (values: LoginValues) => {
     setIsLoading(true);
     try {
-      await apiRequest("POST", "/api/users/login", {
-        username: values.email,
-        password: values.password,
-      });
-      
+      await login(values.email, values.password);
       toast({
         title: "Logged In",
         description: "You have been logged in successfully!",
         variant: "default",
       });
-      
       closeLoginModal();
       navigate("/dashboard");
     } catch (error) {
