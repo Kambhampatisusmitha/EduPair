@@ -7,9 +7,9 @@ import MemoryStore from "memorystore";
 
 const app = express();
 
-// CORS setup (Adjust origin for production)
+// CORS setup for production and development
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "*",
+  origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === "production" ? "https://edupeer.onrender.com" : "*"),
   credentials: true,
 }));
 
@@ -19,11 +19,15 @@ app.use(session({
   secret: process.env.SESSION_SECRET || "your-secret-key", // Use env secret for security
   resave: false,
   saveUninitialized: false,
-  store: new MemoryStoreSession({ checkPeriod: 86400000 }),
+  store: new MemoryStoreSession({ 
+    checkPeriod: 86400000, // 24 hours
+    ttl: 86400000 // 24 hours
+  }),
   cookie: {
     secure: process.env.NODE_ENV === "production", // Secure cookie in production
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     maxAge: 1000 * 60 * 60 * 24, // 1 day
+    httpOnly: true, // Prevent client-side JS from reading the cookie
   },
 }));
 
@@ -44,7 +48,7 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = ${req.method} ${path} ${res.statusCode} in ${duration}ms;
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
@@ -79,6 +83,6 @@ app.use((req, res, next) => {
   // Dynamic port and 0.0.0.0 for external access
   const PORT = process.env.PORT || 5000;
   server.listen(PORT, "0.0.0.0", () => {
-    console.log(Server is running on http://0.0.0.0:${PORT});
+    console.log(`Server is running on http://0.0.0.0:${PORT}`);
   });
 })();
